@@ -1,0 +1,65 @@
+info: 2021-12-01 08:19:55 | info |  |  | <-----------------------------Starting syncMasterDoc----------------------------->
+error: 2021-12-01 08:19:55 | error | http://localhost:9200 | mybooks | MongoNetworkError: failed to connect to server [localhost:29033] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29033
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-12-01 08:19:55 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+info: 2021-12-01 08:20:23 | info |  |  | <-----------------------------Starting syncMasterDoc----------------------------->
+error: 2021-12-01 08:20:23 | error | http://localhost:9200 | mybooks | MongoNetworkError: failed to connect to server [localhost:29033] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29033
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-12-01 08:20:23 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+error: 2021-12-01 08:20:24 | error | http://localhost:9200 | myusers | MongoNetworkError: failed to connect to server [localhost:29033] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29033
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-12-01 08:20:24 | error | http://localhost:9200 | myusers | File error: {"name":"MongoNetworkError"}
+info: 2021-12-01 08:20:24 | info |  |  | <-----------------------------end syncMasterDoc----------------------------->
+info: 2021-12-01 08:20:24 | info |  |  | <-----------------------------Starting syncAttachment----------------------------->
+error: 2021-12-01 08:20:24 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+info: 2021-12-01 08:47:03 | info | http://localhost:9200 | mytest | Stream ended
+info: 2021-12-01 08:47:23 | info | http://localhost:9200 | mytest | Stream ended
+info: 2021-12-01 11:19:52 | info |  |  | <-----------------------------Starting syncMasterDoc----------------------------->
+error: 2021-12-01 11:19:52 | error | http://localhost:9200 | mybooks | MongoNetworkError: failed to connect to server [localhost:29033] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29033
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-12-01 11:19:52 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+error: 2021-12-01 11:19:52 | error | http://localhost:9200 | myusers | MongoNetworkError: failed to connect to server [localhost:29033] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29033
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-12-01 11:19:52 | error | http://localhost:9200 | myusers | File error: {"name":"MongoNetworkError"}
+info: 2021-12-01 11:19:52 | info |  |  | <-----------------------------end syncMasterDoc----------------------------->
+info: 2021-12-01 11:19:52 | info |  |  | <-----------------------------Starting syncAttachment----------------------------->
+error: 2021-12-01 11:19:52 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+info: 2021-12-01 11:21:19 | info |  |  | ******************************update config file******************************
+info: 2021-12-01 11:21:19 | info |  |  | File changed: mytest.json
+error: 2021-12-01 11:21:19 | error | http://localhost:9200 | col2 | DataConfig Master document has some problems, FileName is : mytest.json
+info: 2021-12-01 11:21:23 | info |  |  | ******************************update config file******************************
+info: 2021-12-01 11:21:23 | info |  |  | File changed: mytest.json
+error: 2021-12-01 11:21:23 | error | http://localhost:9200 | col2 | DataConfig Master document has some problems, FileName is : mytest.json
+info: 2021-12-01 11:21:25 | info |  |  | ******************************update config file******************************
+info: 2021-12-01 11:21:25 | info |  |  | File changed: mytest.json
+error: 2021-12-01 11:21:25 | error | http://localhost:9200 | col2 | DataConfig Master document has some problems, FileName is : mytest.json
+info: 2021-12-01 11:21:29 | info |  |  | ******************************update config file******************************
+info: 2021-12-01 11:21:29 | info |  |  | File changed: mytest.json
+error: 2021-12-01 11:21:29 | error | http://localhost:9200 | col2 | DataConfig Master document has some problems, FileName is : mytest.json
+info: 2021-12-01 11:21:32 | info |  |  | ******************************update config file******************************
+info: 2021-12-01 11:21:32 | info |  |  | File changed: mytest.json
+error: 2021-12-01 11:21:32 | error | http://localhost:9200 | col2 | DataConfig Master document has some problems, FileName is : mytest.json
+info: 2021-12-01 11:22:17 | info |  |  | <-----------------------------Starting syncMasterDoc----------------------------->
+error: 2021-12-01 11:22:18 | error | http://localhost:9200 | mybooks | MongoNetworkError: failed to connect to server [localhost:29032] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29032
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-12-01 11:22:18 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+error: 2021-12-01 11:22:18 | error | http://localhost:9200 | myusers | MongoNetworkError: failed to connect to server [localhost:29033] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29033
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-12-01 11:22:18 | error | http://localhost:9200 | myusers | File error: {"name":"MongoNetworkError"}
+info: 2021-12-01 11:22:18 | info |  |  | <-----------------------------end syncMasterDoc----------------------------->
+info: 2021-12-01 11:22:18 | info |  |  | <-----------------------------Starting syncAttachment----------------------------->
+error: 2021-12-01 11:22:18 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}

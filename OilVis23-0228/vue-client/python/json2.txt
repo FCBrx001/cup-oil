@@ -1,0 +1,31 @@
+{
+    "name": "python",
+    "children": [
+        {
+            "name": "data",
+            "children": [
+                {
+                    "name": "1",
+                    "children": [
+                        {"name": "1_1.txt"},
+                    ]
+                },
+                {
+                    "name": "accident.csv",
+                },
+                {
+                    "name":"data1.txt"
+                }
+            ]
+        },
+        {
+            "name": "biwen15.csv",
+        },
+        {
+            "name": "flex",
+        },
+        {
+            "name": "query",
+        }
+    ]
+}

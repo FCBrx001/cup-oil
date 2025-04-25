@@ -1,0 +1,1005 @@
+var option3 = {
+        parallelAxis: [
+            // {
+            //     dim: 0,
+            //     name: '测点',
+            //     type: 'category',
+            //     axisLabel:{
+            //         show:true,
+            //         inside:true
+            //     }
+            // },
+            {dim: 0, name: 'factor1'},
+            {dim: 1, name: 'factor2'},
+            {dim: 2, name: 'factor3'},
+            {
+                dim: 3,
+                name: 'Measuring point',
+                type: 'category',
+                axisLabel:{
+                    show:false,
+                    // inside:true
+                }
+            },
+        ],
+        brush: {
+            toolbox:['rect', 'polygon', 'keep', 'clear'],
+            brushLink: 'all',
+            xAxisIndex: [0],
+            yAxisIndex: [0],
+            inBrush: {
+                colorAlpha: 1,
+                opacity:1
+            },
+            brushStyle:{
+                borderWidth: 1,
+                color: 'rgba(120,140,180,0.3)',
+                borderColor: 'rgba(120,140,180,0.8)'
+            },
+            outOfBrush: {
+                colorAlpha: 0.1,
+                opacity:0.1
+            }
+        },
+        grid:{
+            top: '8%',
+            left: 'center',
+            // right: '5%',
+            height: '30%',
+            width: '80%',
+        },
+        yAxis:{
+            splitNumber: 3,
+            // position: 'right',
+            type: 'value',
+            gridIndex: 0,
+            scale: true
+        },
+        xAxis:{
+            max:65,
+            min:0,
+            splitNumber: 3,
+            // position: 'top',
+            type: 'value',
+            gridIndex: 0,
+            scale: true
+        },
+        parallel:{
+            bottom: '3%',
+            left: '5%',
+            right: '5%',
+            height: '47%',
+            width: '90%',
+            axisExpandCount: 3,
+            axisExpandWidth: 1000,
+            axisExpandTriggerOn: "mousemove",
+            axisExpandCenter: 1,
+            axisExpandable: false
+        },
+        tooltip: {
+            formatter: function(param) {
+                console.log("s",param)
+                if (param.componentIndex==3){
+                    // var value = param.value;
+                    return [
+                        // '类别名称: ' + param.seriesName,
+                        'Factor1_score: ' + param.data[0].toFixed(4),
+                        'Factor2_score: ' + param.data[1].toFixed(4),
+                        'Factor3_score: ' + param.data[2].toFixed(4),
+                    ].join('<br/>')
+                    // return '<div style="border-bottom: 1px solid rgba(255,255,255,.3); font-size: 16px;padding-bottom: 7px;margin-bottom: 7px;"> ' + value[2] +
+                    //     '</div>';
+                }
+                else if (param.componentIndex==1){
+                    // var value = param.value;
+                    return '<div style="border-bottom: 1px solid rgba(255,255,255,.3); font-size: 16px;padding-bottom: 7px;margin-bottom: 7px;"> ' + param.data[2] +
+                        '</div>';
+                }
+                // var value = param.value;
+                // return '<div style="border-bottom: 1px solid rgba(255,255,255,.3); font-size: 16px;padding-bottom: 7px;margin-bottom: 7px;"> ' + value[2] +
+                //     '</div>';
+            }
+        },
+        visualMap: {
+            show: false,
+            min: -0.009,
+            max: 0.012,
+            dimension: 0,
+            inRange: {
+                color: ['#00a8e1','#99cc00','#e30039','#fcd300'].reverse(),
+                // colorAlpha: [0, 1]
+            },
+            seriesIndex:[0]
+        },
+
+        series: [{
+            type: 'parallel',
+            smooth: true,
+            lineStyle: {
+                width: 4
+            },
+            data: [],
+            label:{
+                show:false
+            }
+            // blendMode: 'lighter',
+        },
+        {
+            type: 'scatter',
+            symbolSize: 10,
+            xAxisIndex: 0,
+            yAxisIndex: 0,
+            data: [],
+            itemStyle:{
+                // color:'red',
+                normal : {
+                    color: function(params) {
+                        // console.log("option3",params)
+                        // build a color map as your need.
+                        var colorList = [
+                            '#C1232B','#B5C334','#FCCE10','#E87C25','#27727B',
+                            '#FE8463','#9BCA63','#FAD860','#F3A43B','#60C0DD',
+                            '#D7504B','#C6E579','#F4E001','#F0805A','#26C0C0'
+                        ];
+                        return colorList[1]
+                    }
+                }
+            }
+        }
+        ]
+    };
+
+var option6 = {
+        // title: {
+        //     text: '动态数据 + 时间坐标轴'
+        // },
+        tooltip: {
+            //   trigger: 'axis',
+            formatter: function(params) {
+                // console.log("123",params)
+                if(params.componentSubType=="scatter"){
+                    return [
+                        // '类别名称: ' + param.seriesName,
+                        '参数1: ' + params.data[3],
+                        '参数2: ' + params.data[4],
+                        '相关性得分: ' + params.data[2],
+                    ].join('<br/>')
+                }
+                else{
+                    return [
+                        // '类别名称: ' + param.seriesName,
+                        '参数1: ' + params.data.value[2],
+                        '参数2: ' + params.data.value[3],
+                        '相关性: ' + params.data.value[1].toFixed(2),
+                    ].join('<br/>')
+                }
+                // console.log("123",params)
+                // return [
+                //     // '类别名称: ' + param.seriesName,
+                //     '参数1: ' + params.data.value[2],
+                //     '参数2: ' + params.data.value[3],
+                //     '相关性: ' + params.data.value[1].toFixed(2),
+                // ].join('<br/>')
+                // return params.dataIndex.toString()
+                // if(params.seriesIndex==3){
+                //     return params.data[2].toString()
+                // }
+                // else{
+                //     return params.data[1].toString()
+                // }
+            },
+            axisPointer: {
+                animation: false
+            }
+        },
+        visualMap: [{
+            top: 110+(ronghe_xgx.length-1)*30-35,
+            type: 'piecewise',
+            orient: 'horizontal',
+            left: 'center',
+            dimension: 2,
+            seriesIndex:[ronghe_xgx.length],
+            pieces: [
+                // {
+                // max: -100,
+                // symbolSize: 60,
+                // color: '#000000',
+                // colorAlpha: 1,
+                // label: '爆表',
+                // },
+                // {
+                //     min: -100,
+                //     max: -90,
+                //     symbolSize: 50,
+                //     color: '#27727b',
+                //     colorAlpha: 1
+                // },
+                {
+                    min: -100,
+                    max: -80,
+                    symbolSize: 20,
+                    color: '#313695',
+                    // colorAlpha: 1
+                },
+                {
+                    min: -80,
+                    max: -50,
+                    symbolSize: 10,
+                    color: '#4575b4',
+                    // colorAlpha: 0.4
+                },
+                {
+                    min: -50,
+                    max: 0,
+                    symbolSize: 5,
+                    color: '#74add1',
+                    // colorAlpha: 0.4
+                },
+                {
+                    min: 0,
+                    max: 50,
+                    symbolSize: 5,
+                    color: '#fdae61',
+                    // colorAlpha: 0.4
+                },
+                {
+                    min: 50,
+                    max: 80,
+                    symbolSize: 10,
+                    color: '#f46d43',
+                    // colorAlpha: 0.4
+                },
+                {
+                    min: 80,
+                    max: 100,
+                    symbolSize: 20,
+                    color: '#a50026',
+                    // colorAlpha: 1
+                },
+            ]
+            },
+            {
+                type: 'continuous',
+                min: -1,
+                max: 1,
+                itemWidth:15,
+                itemHeight:60,
+                dimension: 1,
+                calculable: true,
+                top:20,
+                seriesIndex:vxindex,
+                left:'90%',
+                inRange: {
+                    color: ['#313695', '#4575b4', '#74add1', '#abd9e9', '#e0f3f8', '#ffffbf', '#fee090', '#fdae61', '#f46d43', '#d73027', '#a50026']
+                },
+            },
+        ],
+        grid:regrid(),
+        dataZoom: [{
+            top: 110+(ronghe_xgx.length-1)*30-65,
+            left: 50,
+            height:20,
+            // xAxisIndex: [0,1,2,3,4],
+            xAxisIndex: [ronghe_xgx.length],
+            type: 'slider', // 数据滑块
+            // xAxisIndex: 0,
+            start: 0,
+            minSpan: 8, // 5min
+            textStyle:{
+                color:'white'
+            },
+            dataBackground: {
+                lineStyle: {
+                    color: '#95BC2F'
+                },
+                areaStyle: {
+                    color: '#95BC2F',
+                    opacity: 1
+                }
+            },
+            fillerColor: 'rgba(255,255,255,.6)'
+        },
+            {
+                type: 'inside', // 使鼠标在图表中时滚轮可用
+                xAxisIndex:[ronghe_xgx.length],
+            },
+            {
+                type: 'slider',
+                show: true,
+                yAxisIndex:[ronghe_xgx.length],
+                // yAxisIndex: function (){
+                //     return [ronghe_xgx.length+1]
+                // },
+                left: '95%',
+                // start: 0,
+                // end: 100,
+                startValue: 0,
+                endValue: 3,
+            },
+            {
+                type: 'inside',
+                yAxisIndex:[ronghe_xgx.length],
+                // yAxisIndex: function (){
+                //     return [ronghe_xgx.length+1]
+                // },
+            },
+        ],
+        xAxis:rexAxis(),
+        yAxis:reyAxis(),
+        series:redata(1),
+    };
+
+var parallel = [];
+    function redata(indexx){
+        // var parallel = [];
+        // console.log(column.length)
+        // console.log(data[0])
+        for (var i = 0; i < ronghe_xgx.length; i++) {
+            var index=i;
+            parallel.push({
+                name: '融合'+(i+1),
+                type: 'custom',
+                renderItem: renderItem,
+                data: data[i],
+                xAxisIndex:i,
+                yAxisIndex:i
+            });
+        }
+        console.log(i)
+        parallel.push({
+                type: 'scatter',
+                symbol: 'rect',
+                data:zb_d[indexx],
+                label: {
+                    color:'white',
+                    fontSize:'15',
+                    formatter: '{@[2]}',
+                    show: true
+                },
+                itemStyle: {
+                    emphasis: {
+                        borderColor: '#333',
+                        borderWidth: 1
+                    }
+                },
+                xAxisIndex:i,
+                yAxisIndex:i
+        })
+        console.log(parallel);
+        return parallel;
+    };
+    function regrid(){
+        var gridd=[]
+        for (var i = 0; i < ronghe_xgx.length;i++) {
+            gridd.push({
+                top: 20+i*30,
+                left: 50,
+                right: 50,
+                height: 20
+            })
+        }
+        gridd.push({
+            top: 110+(ronghe_xgx.length-1)*30,
+            left: 50,
+            right: 50,
+            height: 600-110-(ronghe_xgx.length-1)*30-180,
+        })
+        // option6.visualMap[0].top=110+(ronghe_xgx.length-1)*30-40;
+        // option6.dataZoom[0].top=110+(ronghe_xgx.length-1)*30-80;
+        return gridd
+    };
+    function rexAxis(){
+        var xAxiss=[]
+        for (var i = 0; i < ronghe_xgx.length;i++) {
+            xAxiss.push({
+                type: 'time',
+                position: 'top',
+                gridIndex: i,
+                axisLabel:{
+                    show:false
+                },
+                splitLine: {
+                    show: false
+                },
+                axisTick:{
+                    show: false
+                }
+            })
+        }
+        xAxiss.push({
+            type: 'category',
+            gridIndex: i,
+            splitArea: {
+                show: true
+            }
+        })
+        return xAxiss
+    };
+    function reyAxis(){
+        var yAxiss=[]
+        for (var i = 0; i < ronghe_xgx.length;i++) {
+            yAxiss.push({
+                type: 'value',
+                gridIndex: i,
+                inverse: true,
+                show: false,
+                min: 0,
+                max: 10
+            })
+        }
+        yAxiss.push({
+            type: 'category',
+            gridIndex: i,
+            splitArea: {
+                show: true
+            }
+        })
+        return yAxiss
+    }
+
+var option7 = {
+        // title: {
+        //     text: '分析',
+        //     left: '50%',
+        //     textAlign: 'center',
+        //     top: '0%'
+        // },
+        tooltip:{
+            show:true,
+            formatter:function(param){
+                // console.log(param)
+                return [
+                    // '类别名称: ' + param.seriesName,
+                    '参数1: ' + param.data.name1,
+                    '参数2: ' + param.data.name,
+                    '相关性: ' + param.data.value.toFixed(2),
+                ].join('<br/>')
+                // if(param.componentIndex==0){
+                //     return param.data.name+': '+(param.data.value.toFixed(2)).toString()
+                // }
+                // console.log(param)
+            }
+        },
+        // color: ['#63b2ee', '#76da91', '#f8cb7f', '#f89588','#7cd6cf','#9192ab','#7898e1','#efa666'],
+        series: [{
+            type: 'pie',
+            data: data5,
+            roseType: 'radius',
+            radius: '60%',
+            right:'10%',
+            top:'10%',
+            itemStyle: {
+                normal: {
+                    // color: 'white',
+                    color:function (param){
+                        if(param.data.name.indexOf('负相关')!=-1){
+                            return '#0082fc';
+                        }
+                        else{
+                            return 'white';
+                        }
+                    },
+                    borderColor: '#ffc076'
+                },
+                // emphasis: {
+                //     itemStyle: {
+                //         shadowBlur: 10,
+                //         shadowOffsetX: 0,
+                //         shadowColor: 'rgba(0, 0, 0, 0.5)'
+                //     }
+                // }
+                emphasis: {
+                    borderColor: '#333',
+                    borderWidth: 3
+                },
+            },
+            labelLine: {
+                normal: {
+                    show: false
+                }
+            },
+            label: {
+                normal: {
+                    show: false
+                }
+            },
+            // emphasis: {
+            //     borderColor: '#333',
+            //     borderWidth: 1
+            // },
+            // tooltip:{
+            //     show:true,
+            //     formatter:function(param){
+            //         console.log(param)
+            //     }
+            // }
+        },
+        {
+            type: 'pie',
+            data: labelData5,
+            radius: ['65%', '100%'],
+            zlevel: -2,
+            right:'10%',
+            top:'10%',
+            roseType: 'radius',
+            itemStyle: {
+                normal: {
+                    // color: '#22C3AA',
+                    color:function (param){
+                        for(var i=1;i<9;i++)
+                        {
+                            var s='#'+i+'管';
+                            if(param.data.name.indexOf(s)!=-1){
+                                return colorlist[i-1];
+                            }
+                        }
+                        // if(param.data.value<=0){
+                        //     return '#0082fc';
+                        // }
+                        // else{
+                        //     return '#22C3AA';
+                        // }
+                    },
+                    borderColor: 'white',
+                    // color: 'white'
+                },
+                emphasis: {
+                    borderColor: '#333',
+                    borderWidth: 3
+                },
+            },
+            label: {
+                normal: {
+                    show:false,
+                    fontSize:5,
+                    // show:true,
+                    position: 'inside'
+                }
+            }
+        }
+        ]
+    };
+
+var option8 = {
+        // title: {
+        //     text: 'Graph 简单示例'
+        // },
+        xAxis: [
+            {
+                show:true,
+                type: 'category',
+                data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                gridIndex:0
+            },
+            {
+                show:true,
+                type: 'category',
+                data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                gridIndex:1
+            },
+            {
+                show:true,
+                type: 'category',
+                data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                gridIndex:2
+            },
+            {
+                show:true,
+                type: 'category',
+                data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                gridIndex:3
+            },
+            {
+                show:true,
+                type: 'category',
+                data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                gridIndex:4,
+            },
+            {
+                show:true,
+                type: 'category',
+                data: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                gridIndex:5,
+            },
+        ],
+        yAxis: [
+            {
+                show:false,
+                type: 'value',
+                gridIndex:0,
+                max: function (value) {
+                    return value.max ;
+                },
+                min: function (value) {
+                    return value.min ;
+                },
+            },
+            {
+                show:false,
+                type: 'value',
+                gridIndex:1,
+                max: function (value) {
+                    return value.max ;
+                },
+                min: function (value) {
+                    return value.min ;
+                },
+            },
+            {
+                show:false,
+                type: 'value',
+                gridIndex:2,
+                max: function (value) {
+                    return value.max ;
+                },
+                min: function (value) {
+                    return value.min ;
+                },
+            },
+            {
+                show:false,
+                type: 'value',
+                gridIndex:3,
+                max: function (value) {
+                    return value.max ;
+                },
+                min: function (value) {
+                    return value.min ;
+                },
+            },
+            {
+                show:false,
+                type: 'value',
+                gridIndex:4,
+                max: function (value) {
+                    return value.max ;
+                },
+                min: function (value) {
+                    return value.min ;
+                },
+            },
+            {
+                show:false,
+                type: 'value',
+                gridIndex:5,
+                max: function (value) {
+                    return value.max ;
+                },
+                min: function (value) {
+                    return value.min ;
+                },
+            },
+        ],
+        dataZoom: [
+            // {
+            //     type: 'slider',//数据滑块
+            //     show:true,
+            //     xAxisIndex:[0],//表示x轴折叠
+            //     start:0,
+            //     end:35,
+            //     //minSpan:2,    //5min
+            //     // minSpan:16,   //10min
+            //     // minSpan:24,   //15min
+            //     // minSpan:50,   //30min
+            //     dataBackground:{
+            //         lineStyle:{
+            //             color:'#95BC2F'
+            //         },
+            //         areaStyle:{
+            //             color:'#95BC2F',
+            //             opacity:1,
+            //         }
+            //     },
+            //     fillerColor:'rgba(255,255,255,.6)'
+            // },
+            {
+                xAxisIndex:[0,1,2,3,4,5],//表示x轴折叠
+                type:'inside'//使鼠标在图表中时滚轮可用
+            }
+        ],
+        grid: [
+            {
+                top:0,
+                // width:300,
+                // bottom: 770,
+                left:120,
+                height:50
+
+            },
+            {
+                top:90,
+                left:120,
+                height:50
+            },
+            {
+                top:180,
+                left:120,
+                height:50
+            },
+            {
+                top: 270,
+                left:120,
+                height:50
+            },
+            {
+                top: 360,
+                left:120,
+                height:50
+            },
+            {
+                top: 450,
+                left:120,
+                height:50
+            },
+        ],
+        tooltip: {},
+        animationDurationUpdate: 1500,
+        animationEasingUpdate: 'quinticInOut',
+        series: [
+            {
+                type: 'graph',
+                layout: 'none',
+                symbolSize: 20,
+                // roam: true,
+                label: {
+                    show: true
+                },
+                edgeSymbol: ['none', 'none'],
+                edgeSymbolSize: [4, 10],
+                edgeLabel: {
+                    fontSize: 20
+                },
+                label: {
+                    normal: {
+                        show: true,
+                        fontSize:10,
+                        position: 'right',
+                        formatter: '{b}',
+                        interval: 0
+                    }
+                },
+                left:50,
+                tooltip:{
+                    position:'right',
+                    formatter:function (params){
+                        console.log(params)
+                        if(params.dataType=="edge"){
+                            console.log(1)
+                            return [
+                                // '类别名称: ' + param.seriesName,
+                                '参数1: ' + params.data.source,
+                                '参数2: ' + params.data.target,
+                                '相关性: ' + params.data.value.toFixed(2),
+                            ].join('<br/>')
+                        }
+                        else{
+                            return params.data.name
+                        }
+                        // return [
+                        //     // '类别名称: ' + param.seriesName,
+                        //     '参数1: ' + params.data.source,
+                        //     '参数2: ' + params.data.target,
+                        //     '相关性: ' + params.data.value.toFixed(2),
+                        // ].join('<br/>')
+                    }
+                },
+                data: [{
+                    name: '财务启动预算填报',
+                    x: 100,
+                    y: 50,
+                    width:5
+                }, {
+                    name: '部门填报',
+                    x: 100,
+                    y: 100
+                }, {
+                    name: '板块审批',
+                    x: 100,
+                    y: 150
+                },{
+                    name: '财务确认',
+                    x: 100,
+                    y: 200
+                }, {
+                    name: '板块审批1',
+                    x: 100,
+                    y: 250
+                },  {
+                    name: '板块审批2',
+                    x: 100,
+                    y: 300
+                },],
+                // links: [],
+                links: [{
+                    source:'财务启动预算填报',
+                    target: '部门填报',
+                    value:1,
+                    lineStyle: {
+                        normal: {
+                            // width : 20,//可信度越高，连线越粗
+                            color : 'red'
+                        }
+                    }
+                },{
+                    source: '部门填报',
+                    target: '板块审批',
+                    value:-1,
+                    lineStyle: {
+                        normal: {
+                            // width : 20,//可信度越高，连线越粗
+                            color : 'blue'
+                        }
+                    }
+                },{
+                    source: '板块审批',
+                    target:'板块审批1',
+                    value:1,
+                    lineStyle: {
+                        normal: {
+                            // width : 20,//可信度越高，连线越粗
+                            color : 'red'
+                        }
+                    }
+                },{
+                    source: '板块审批1',
+                    target:'板块审批2',
+                    value:1,
+                    lineStyle: {
+                        normal: {
+                            // width : 20,//可信度越高，连线越粗
+                            color : 'red'
+                        }
+                    }
+                },{
+                    source:  '板块审批2',
+                    target: 1,
+                    value:-1,
+                    lineStyle: {
+                        normal: {
+                            // width : 20,//可信度越高，连线越粗
+                            color : 'blue'
+                        }
+                    }
+                },{
+                    source:  '板块审批',
+                    target: '财务确认',
+                    value:1,
+                    lineStyle: {
+                        normal: {
+                            // width : 20,//可信度越高，连线越粗
+                            color : 'red'
+                        }
+                    }
+                }],
+                focusNodeAdjacency:true,//当鼠标移动到节点上，突出显示节点以及节点的边和邻接节点
+                // draggable: true,//指示节点是否可以拖动
+                label: {
+                    normal: {
+                        show: true,
+                        fontSize:10,
+                        position: 'top',
+                        formatter: '{b}',
+                        interval: 0
+                    }
+                },
+                edgeSymbol: ['none', 'none'],
+                edgeSymbolSize: 12,
+                edgeLabel: {
+                    normal: {
+                        textStyle: {
+                            fontSize: 15
+                        }
+                    }
+                },
+
+                force: {
+                    repulsion: 200,
+                    gravity:0.25,
+                    edgeLength: [100,400],
+                },
+                itemStyle:{
+                    normal: {
+                        borderColor: '#fff',
+                        borderWidth: 1,
+                        shadowBlur: 10,
+                    }
+
+                },
+                lineStyle: {
+                    // normal: {
+                        opacity: 0.9,
+                        curveness: 0.2,
+                        // color:'blue'
+                        // color : function (params){
+                        //     console.log(params)
+                        //     if(params.data.value<0){
+                        //         return 'blue'
+                        //     }
+                        //     else {
+                        //         return 'red'
+                        //     }
+                        // }
+                    // }
+                },
+            }
+            ,
+            {
+                symbol: "none",
+                data: [820, 1500, 20, 934, 1290, 1330, 1320],
+                type: 'line',
+                lineStyle: {
+                    normal: {
+                        width: 2,
+                    }
+                },
+                smooth: true,
+                xAxisIndex:0,
+                yAxisIndex:0,
+            },
+            {
+                symbol: "none",
+                data: [820, 1500, 20, 934, 1290, 1330, 1320],
+                type: 'line',
+                lineStyle: {
+                    normal: {
+                        width: 2,
+                    }
+                },
+                smooth: true,
+                xAxisIndex:1,
+                yAxisIndex:1,
+            },
+            {
+                symbol: "none",
+                data: [820, 1500, 20, 934, 1290, 1330, 1320],
+                type: 'line',
+                lineStyle: {
+                    normal: {
+                        width: 2,
+                    }
+                },
+                smooth: true,
+                xAxisIndex:2,
+                yAxisIndex:2,
+            },
+            {
+                symbol: "none",
+                data: [820, 1500, 20, 934, 1290, 1330, 1320],
+                type: 'line',
+                lineStyle: {
+                    normal: {
+                        width: 2,
+                    }
+                },
+                smooth: true,
+                xAxisIndex:3,
+                yAxisIndex:3,
+            },
+            {
+                symbol: "none",
+                data: [820, 1500, 20, 934, 1290, 1330, 1320],
+                type: 'line',
+                lineStyle: {
+                    normal: {
+                        width: 2,
+                    }
+                },
+                smooth: true,
+                xAxisIndex:4,
+                yAxisIndex:4,
+            },
+            {
+                symbol: "none",
+                data: [820, 1500, 20, 934, 1290, 1330, 1320],
+                type: 'line',
+                lineStyle: {
+                    normal: {
+                        width: 2,
+                    }
+                },
+                smooth: true,
+                xAxisIndex:5,
+                yAxisIndex:5,
+            }
+        ]
+    };

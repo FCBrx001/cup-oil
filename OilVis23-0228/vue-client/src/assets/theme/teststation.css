@@ -1,0 +1,38 @@
+.fl{ float:left}
+.StationBox{
+    width: 100%;
+    padding:0 0rem 0rem 0rem; 
+    height:100%;
+    
+}
+.Sleft{
+    width:10%;
+    height: 100%;
+    float:left;
+    overflow: auto
+}
+.StationCharts{
+    width:90%;
+    height: 100%;
+    float:left;
+}
+.CLeft{
+    float:left;
+    margin-top: .5rem;
+    width:49.5%;
+    height:30rem
+}
+.CRight{
+    float:left;
+    margin-left: .5rem;
+    margin-top: .5rem;
+    width:49.5%;
+    height:30rem
+}
+.SZW{ width:90%; margin:0 auto;overflow:hidden; padding-top:30px;} 
+.SLF{
+    width:65%;
+}
+.SRT{
+    width:35%;
+}

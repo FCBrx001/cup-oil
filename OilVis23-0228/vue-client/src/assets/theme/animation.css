@@ -1,0 +1,7 @@
+.move-right-enter-active,
+.move-right-active {
+  transition: transform 1s;
+}
+.move-right-enter, .move-right-leave-to /* .move-left-leave-active below version 2.1.8 */ {
+  transform: translateX(200%);
+}

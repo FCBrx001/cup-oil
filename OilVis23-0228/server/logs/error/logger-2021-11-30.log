@@ -1,0 +1,146 @@
+error: 2021-11-30 19:36:35 | error | http://localhost:9200 | mybooks | MongoNetworkError: failed to connect to server [localhost:29032] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29032
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-11-30 19:36:35 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 19:36:35 | error | http://localhost1:9200 | mytest | MongoError: seed list contains no mongos proxies, replicaset connections requires the parameter replicaSet to be supplied in the URI or options object, mongodb://server:port/db?replicaSet=name
+error: 2021-11-30 19:36:35 | error | http://localhost1:9200 | mytest | File error: {"name":"MongoError"}
+error: 2021-11-30 19:36:35 | error | http://localhost:9200 | myusers | MongoNetworkError: failed to connect to server [localhost:29033] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29033
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-11-30 19:36:35 | error | http://localhost:9200 | myusers | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 19:36:35 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 19:37:12 | error | http://localhost1:9200 | mytest | MongoError: seed list contains no mongos proxies, replicaset connections requires the parameter replicaSet to be supplied in the URI or options object, mongodb://server:port/db?replicaSet=name
+error: 2021-11-30 19:37:12 | error | http://localhost1:9200 | mytest | File error: {"name":"MongoError"}
+error: 2021-11-30 19:37:12 | error | http://localhost1:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 19:37:14 | error | http://localhost1:9200 | mytest | MongoError: seed list contains no mongos proxies, replicaset connections requires the parameter replicaSet to be supplied in the URI or options object, mongodb://server:port/db?replicaSet=name
+error: 2021-11-30 19:37:14 | error | http://localhost1:9200 | mytest | File error: {"name":"MongoError"}
+error: 2021-11-30 19:37:14 | error | http://localhost1:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 19:39:31 | error | http://localhost1:9200 | mytest | getConnection must be called with a mongo connection string
+error: 2021-11-30 19:39:31 | error | http://localhost1:9200 | mytest | File error: "getConnection must be called with a mongo connection string"
+error: 2021-11-30 19:39:31 | error | http://localhost1:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 19:39:33 | error | http://localhost1:9200 | mytest | getConnection must be called with a mongo connection string
+error: 2021-11-30 19:39:33 | error | http://localhost1:9200 | mytest | File error: "getConnection must be called with a mongo connection string"
+error: 2021-11-30 19:39:33 | error | http://localhost1:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 19:41:41 | error | http://localhost1:9200 | mytest | getConnection must be called with a mongo connection string
+error: 2021-11-30 19:41:41 | error | http://localhost1:9200 | mytest | File error: "getConnection must be called with a mongo connection string"
+error: 2021-11-30 19:41:41 | error | http://localhost1:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 19:41:51 | error | http://localhost1:9200 | mytest | getConnection must be called with a mongo connection string
+error: 2021-11-30 19:41:51 | error | http://localhost1:9200 | mytest | File error: "getConnection must be called with a mongo connection string"
+error: 2021-11-30 19:41:51 | error | http://localhost1:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 19:41:52 | error | http://localhost1:9200 | mytest | getConnection must be called with a mongo connection string
+error: 2021-11-30 19:41:52 | error | http://localhost1:9200 | mytest | File error: "getConnection must be called with a mongo connection string"
+error: 2021-11-30 19:41:52 | error | http://localhost1:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 19:43:25 | error | http://localhost1:9200 | mytest | getConnection must be called with a mongo connection string
+error: 2021-11-30 19:43:25 | error | http://localhost1:9200 | mytest | File error: "getConnection must be called with a mongo connection string"
+error: 2021-11-30 19:43:25 | error | http://localhost1:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 19:47:56 | error | http://localhost1:9200 | mytest | getConnection must be called with a mongo connection string
+error: 2021-11-30 19:47:56 | error | http://localhost1:9200 | mytest | File error: "getConnection must be called with a mongo connection string"
+error: 2021-11-30 19:47:56 | error | http://localhost1:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 19:47:58 | error | http://localhost1:9200 | mytest | getConnection must be called with a mongo connection string
+error: 2021-11-30 19:47:58 | error | http://localhost1:9200 | mytest | File error: "getConnection must be called with a mongo connection string"
+error: 2021-11-30 19:47:58 | error | http://localhost1:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 19:48:07 | error | http://localhost:9200 | mybooks | MongoNetworkError: failed to connect to server [localhost:29031] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29031
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-11-30 19:48:07 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 19:48:07 | error | http://localhost1:9200 | mytest | getConnection must be called with a mongo connection string
+error: 2021-11-30 19:48:07 | error | http://localhost1:9200 | mytest | File error: "getConnection must be called with a mongo connection string"
+error: 2021-11-30 19:48:07 | error | http://localhost:9200 | myusers | MongoNetworkError: failed to connect to server [localhost:29033] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29033
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-11-30 19:48:07 | error | http://localhost:9200 | myusers | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 19:48:07 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 19:50:05 | error | http://localhost1:9200 | mytest | getConnection must be called with a mongo connection string
+error: 2021-11-30 19:50:05 | error | http://localhost1:9200 | mytest | File error: "getConnection must be called with a mongo connection string"
+error: 2021-11-30 19:50:05 | error | http://localhost1:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 19:50:07 | error | http://localhost1:9200 | mytest | getConnection must be called with a mongo connection string
+error: 2021-11-30 19:50:07 | error | http://localhost1:9200 | mytest | File error: "getConnection must be called with a mongo connection string"
+error: 2021-11-30 19:50:07 | error | http://localhost1:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 19:52:53 | error | http://localhost:9200 | mytest | getConnection must be called with a mongo connection string
+error: 2021-11-30 19:52:53 | error | http://localhost:9200 | mytest | File error: "getConnection must be called with a mongo connection string"
+error: 2021-11-30 19:52:53 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 19:52:55 | error | http://localhost:9200 | mytest | getConnection must be called with a mongo connection string
+error: 2021-11-30 19:52:55 | error | http://localhost:9200 | mytest | File error: "getConnection must be called with a mongo connection string"
+error: 2021-11-30 19:52:55 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 19:58:10 | error | http://localhost:9200 | mytest | getConnection must be called with a mongo connection string
+error: 2021-11-30 19:58:10 | error | http://localhost:9200 | mytest | File error: "getConnection must be called with a mongo connection string"
+error: 2021-11-30 19:58:10 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 20:28:39 | error | http://localhost:9200 | mytest | MongoError: seed list contains no mongos proxies, replicaset connections requires the parameter replicaSet to be supplied in the URI or options object, mongodb://server:port/db?replicaSet=name
+error: 2021-11-30 20:28:39 | error | http://localhost:9200 | mytest | File error: {"name":"MongoError"}
+error: 2021-11-30 20:28:39 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 20:28:43 | error | http://localhost:9200 | mytest | MongoError: seed list contains no mongos proxies, replicaset connections requires the parameter replicaSet to be supplied in the URI or options object, mongodb://server:port/db?replicaSet=name
+error: 2021-11-30 20:28:43 | error | http://localhost:9200 | mytest | File error: {"name":"MongoError"}
+error: 2021-11-30 20:28:43 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 20:29:08 | error | http://localhost:9200 | mytest | MongoError: seed list contains no mongos proxies, replicaset connections requires the parameter replicaSet to be supplied in the URI or options object, mongodb://server:port/db?replicaSet=name
+error: 2021-11-30 20:29:08 | error | http://localhost:9200 | mytest | File error: {"name":"MongoError"}
+error: 2021-11-30 20:29:08 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 20:31:08 | error | http://localhost:9200 | mytest | MongoParseError: No username provided in authority section
+error: 2021-11-30 20:31:08 | error | http://localhost:9200 | mytest | File error: {"name":"MongoParseError"}
+error: 2021-11-30 20:31:08 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 20:32:23 | error | http://localhost:9200 | mytest | MongoParseError: No username provided in authority section
+error: 2021-11-30 20:32:23 | error | http://localhost:9200 | mytest | File error: {"name":"MongoParseError"}
+error: 2021-11-30 20:32:23 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 21:03:14 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 21:04:11 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 21:04:17 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 21:04:17 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 21:08:19 | error | http://localhost:9200 | mybooks | MongoNetworkError: failed to connect to server [localhost:29033] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29033
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-11-30 21:08:19 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 21:08:20 | error | http://localhost:9200 | myusers | MongoNetworkError: failed to connect to server [localhost:29033] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29033
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-11-30 21:08:20 | error | http://localhost:9200 | myusers | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 21:08:20 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 21:09:06 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 21:16:38 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 21:16:41 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 21:20:31 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 21:20:32 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 21:39:20 | error | http://localhost:9200 | mybooks | MongoNetworkError: failed to connect to server [localhost:29033] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29033
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-11-30 21:39:20 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 21:39:20 | error | http://localhost:9200 | mybooks | DataConfig Master document has some problems, FileName is : mybooks.json
+error: 2021-11-30 21:39:20 | error | http://localhost:9200 | myusers | MongoNetworkError: failed to connect to server [localhost:29031] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29031
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-11-30 21:39:20 | error | http://localhost:9200 | myusers | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 21:39:20 | error | http://localhost:9200 | myusers | DataConfig Master document has some problems, FileName is : myusers.json
+error: 2021-11-30 21:40:10 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 21:40:11 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 21:40:12 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 21:40:12 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 21:40:30 | error | http://localhost:9200 | mybooks | MongoNetworkError: failed to connect to server [localhost:29031] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29031
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-11-30 21:40:30 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 21:40:30 | error | http://localhost:9200 | myusers | MongoNetworkError: failed to connect to server [localhost:29033] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29033
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-11-30 21:40:30 | error | http://localhost:9200 | myusers | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 21:40:30 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 21:43:32 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 21:43:34 | error | http://localhost:9200 | mytest | DataConfig Master document has some problems, FileName is : mytest.json
+error: 2021-11-30 22:20:30 | error | http://localhost:9200 | mybooks | MongoNetworkError: failed to connect to server [localhost:29031] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29031
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-11-30 22:20:30 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 22:20:30 | error | http://localhost:9200 | myusers | MongoNetworkError: failed to connect to server [localhost:29033] on first connect [Error: connect ECONNREFUSED 127.0.0.1:29033
+    at TCPConnectWrap.afterConnect [as oncomplete] (net.js:1148:16) {
+  name: 'MongoNetworkError'
+}]
+error: 2021-11-30 22:20:30 | error | http://localhost:9200 | myusers | File error: {"name":"MongoNetworkError"}
+error: 2021-11-30 22:20:30 | error | http://localhost:9200 | mybooks | File error: {"name":"MongoNetworkError"}

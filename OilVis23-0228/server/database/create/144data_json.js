@@ -1,0 +1,107 @@
+
+const set_level = require('./144set_level')
+
+function datajson(line,tag,doc_num,sum,coll_5min,coll_10min,coll_30min,coll_60min){
+
+    //文档号
+    var docnum_JSON = Number(doc_num);
+    //数组大小
+    var count_Json=Number(tag);
+    var arr1 = [
+    'Timestamp',              '茂名下载1',            '茂名下载2',
+    '茂名出站流量1',          '茂名出站流量2',        '给油泵出口压力',
+    '茂名出站压力',           '茂名进站油品密度',     '茂名出站油品密度',
+    '茂名进站温度',           '茂名出站温度',         '茂名进站压力',
+    '茂名下载减压阀后压力',   '茂名出站流量',         '阳江进站流量',
+    '阳江流量计1',            '阳江流量计2',          '阳江进站压力',
+    '阳江出站压力',           '阳江油品密度',         '阳江进站温度',
+    '阳江出站温度',           '阳江输油泵组入口压力', '阳江输油泵组出口压力',
+    '阳江下载阀前压力',       '阳江减压阀后压力',     '阳江出站流量',
+    '恩平流量计1',            '恩平流量计2',          '恩平越站流量',
+    '恩平进站压力',           '恩平出站压力',         '恩平油品密度',
+    '恩平密度计1',            '恩平密度计2',          '恩平进站温度',
+    '恩平减压阀前压力',       '恩平减压阀后压力',     '恩平出站流量',
+    '鹤山进站流量',           '鹤山流量计1',          '鹤山流量计2',
+    '鹤山进站压力',           '鹤山出站压力',         '鹤山油品密度',
+    '鹤山进站温度',           '鹤山出站温度',         '鹤山下载减压阀前压力',
+    '鹤山主输泵出口压力',     '鹤山减压阀后压力',     '鹤山主输泵入口压力',
+    '鹤山出站流量',           '江门进站流量',         '江门流量计1',
+    '江门流量计2',            '江门流量计3',          '江门流量计4',
+    '江门出站流量',           '江门进站压力',         '江门出站压力',
+    '江门油品密度',           '江门密度计1',          '江门进站温度',
+    '江门至荷城出站温度',     '江门出站流量',         '高明进站流量',
+    '高明流量计1',            '高明流量计2',          '高明流量计3',
+    '高明进站压力',           '高明出站压力',         '高明油品密度',
+    '高明进站温度',           '高明出站温度',         '高明站减压阀前压力',
+    '高明减压阀后压力',       '高明出站流量',         '{MCC} STN20-00-19FI003',
+    '三水流量计1',            '三水流量计2',          '三水越站流量',
+    '三水进站压力',           '三水至花都出站压力',   '三水至南海出站压力',
+    '三水油品密度',           '三水进站温度',         '三水出站温度',
+    '三水减压阀前压力',       '三水减压阀后压力',     '三水进站流量',
+    '花都进站什么玩意',       '花都流量计1',          '花都流量计2',
+    '花都进站压力',           '花都油品密度',         '花都进站温度',
+    '花都减压阀钱雅丽',       '花都减压阀后压力',     '花都进站流量',
+    '{MCC} STN21-00-20FI003','南海流量计1','南海流量计2','南海进站压力',
+    '南海油品密度','南海密度计','南海进站温度','南海减压阀前压力','南海减压阀后压力','南海进站流量']
+    //将csv分割成string形式（适用于每个文档的其他数）
+    var arrstr = new Array( )
+    var arrArr = new Array( )
+    for(var i=1;i<=110;i++)
+    {
+        arrstr[i] = String(line.split(",")[i])
+    }
+    
+
+    let liststr={}
+    for(var i=1;i<=110;i++)
+    {
+        liststr[`${arr1[i-1]}`] = arrstr[i]
+    }
+    let listArr={}
+    //生成其他库
+    if(sum%300==0){
+        set_level(liststr,sum,coll_5min,coll_10min,coll_30min,coll_60min)
+    }
+    
+    
+    if(tag==0){
+
+        for(var i=1;i<=110;i++)
+        {
+            arrArr[i] = Array(line.split(",")[i])
+        }
+        var time = line.split(",")[1]
+        const date = new Date(time);
+
+        const Y = date.getFullYear();
+        const M = (date.getMonth() + 1 < 10 ? '0' + (date.getMonth() + 1) : date.getMonth() + 1);
+        const D = (date.getDate() < 10 ? '0'+date.getDate() : date.getDate());
+        const H = (date.getHours() < 10 ? '0'+date.getHours() : date.getHours());
+        
+        listArr['Doc-ID']=docnum_JSON
+        listArr['Timestamp']=time
+        listArr['Year']=Y
+        listArr['Month']=M
+        listArr['Day']=D
+        listArr['Hour']=H
+        for(var i=1;i<=110;i++)
+        {
+            listArr[`${arr1[i-1]}`] = arrArr[i]
+        }
+
+
+        //return list1
+        return new Promise((resolve,reject)=>{
+            resolve(listArr)
+        })
+    }
+    else{
+        //return list2
+        return new Promise((resolve,reject)=>{
+            resolve(liststr)
+        })
+        
+    }
+}
+
+module.exports = datajson

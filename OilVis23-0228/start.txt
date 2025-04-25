@@ -1,0 +1,2 @@
+start cmd /k "cd server&&npm run server"
+start cmd /k "cd vue-client&&npm run dev"

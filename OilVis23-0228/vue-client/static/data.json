@@ -1,0 +1,25 @@
+{
+    "users": [
+        {
+            "id": "1",
+            "code": "admin",
+            "name": "admin",
+            "nick": "超级管理员",
+            "pwd": "aaaaaa"
+        },
+        {
+            "id": "2",
+            "code": "Annie",
+            "name": "安妮",
+            "nick": "管理员一姐",
+            "pwd": "aaaaaa"
+        },
+        {
+            "id": "1",
+            "code": "jack002",
+            "name": "李力夫",
+            "nick": "jjjjj",
+            "pwd": "aaaaaa"
+        }
+    ]
+}
