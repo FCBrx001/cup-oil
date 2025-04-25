@@ -1,0 +1,19 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "D:\\Project\\Pipe1.0\\node-vue\\app\\logs\\trace\\.84a8f66b9faa48abfaddcd9ed7e7ff229b4025f5-audit.json",
+    "files": [
+        {
+            "date": 1638272195343,
+            "name": "D:\\Project\\Pipe1.0\\node-vue\\app\\logs\\trace\\trace-2021-11-30.txt",
+            "hash": "c694bb509008feeb20b9ec2b89b706ec"
+        },
+        {
+            "date": 1638317995723,
+            "name": "D:\\Project\\Pipe1.0\\node-vue\\app\\logs\\trace\\trace-2021-12-01.txt",
+            "hash": "316e20d5ff60fef7fe18de82a6ec7a5e"
+        }
+    ]
+}
