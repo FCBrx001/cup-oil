@@ -16,6 +16,33 @@
                         <span style="font-size:1.5rem;width:12rem;">管段状态信息</span>
                         <b class="data-title-right fr">]</b>
                     </div>
+                    <!-- 添加管段切换选择器 -->
+                    <div class="pipeline-selector">
+                        <div class="custom-select-wrapper" style="width: 95%; display: flex; justify-content: center;">
+                            <div class="custom-select-inner" style="background: rgba(2, 32, 71, 0.9); border: 1px solid #66dffb; border-radius: 4px; width: 100%; position: relative; height: 35px; box-shadow: 0 0 10px rgba(102, 223, 251, 0.3);">
+                                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; color: white; font-size: 15px; letter-spacing: 1px; pointer-events: none;">
+                                    {{ currentPipelineLabel || '请选择管段' }}
+                                </div>
+                                <el-select 
+                                    v-model="selectedPipeline" 
+                                    placeholder="请选择管段" 
+                                    @change="changePipeline" 
+                                    class="pipeline-select invisible-select"
+                                    style="width: 100%; height: 100%;"
+                                    popper-class="pipeline-dropdown">
+                                    <el-option
+                                        v-for="item in pipelineOptions"
+                                        :key="item.value"
+                                        :label="item.label"
+                                        :value="item.value">
+                                    </el-option>
+                                </el-select>
+                                <div style="position: absolute; right: 5px; top: 10px; color: #66dffb; pointer-events: none;">
+                                    <i class="el-icon-arrow-down"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <!-- 项目概览-->
                     <div class="xmglan">
                         <div class="default-data">
@@ -34,62 +61,62 @@
                                 <div class="monitor-grid">
                                     <div class="monitor-item">
                                         <span class="label">管段名称</span>
-                                        <span class="value">黄埔 <span class="value normal">至</span> 东莞</span>
+                                        <span class="value">{{ currentPipelineData.name }}</span>
                                     </div>
                                     <div class="monitor-item">
                                         <span class="label">输运状态</span>
-                                        <span class="value normal">停输</span>
+                                        <span class="value" :class="currentPipelineData.status === '运行中' ? 'normal' : 'warning'">{{ currentPipelineData.status }}</span>
                                     </div>
                                     <div class="monitor-item">
                                         <span class="label">阀位点数</span>
-                                        <span class="value normal">11个</span>
+                                        <span class="value normal">{{ currentPipelineData.valvePoints }}</span>
                                     </div>
                                     <div class="monitor-item">
                                         <span class="label">停输时长</span>
-                                        <span class="value normal">16h</span>
+                                        <span class="value normal">{{ currentPipelineData.stopDuration }}</span>
                                     </div>
                                     <div class="monitor-item">
                                         <span class="label">输运油品</span>
-                                        <span class="value normal">92#</span>
+                                        <span class="value normal">{{ currentPipelineData.oilType }}</span>
                                     </div>
                                     <div class="monitor-item">
                                         <span class="label">油品密度</span>
-                                        <span class="value normal">745 kg/m³</span>
+                                        <span class="value normal">{{ currentPipelineData.oilDensity }}</span>
                                     </div>
                                     <div class="monitor-item">
                                         <span class="label">站间高差</span>
-                                        <span class="value normal">46 m</span>
+                                        <span class="value normal">{{ currentPipelineData.heightDiff }}</span>
                                     </div>
                                     <div class="monitor-item">
                                         <span class="label">输送方向</span>
-                                        <span class="value normal">黄埔 -> 东莞</span>
+                                        <span class="value normal">{{ currentPipelineData.direction }}</span>
                                     </div>
                                     <div class="monitor-item">
                                         <span class="label">所属管线</span>
-                                        <span class="value normal">珠三角管线</span>
+                                        <span class="value normal">{{ currentPipelineData.line }}</span>
                                     </div>
                                 </div>
                                 <div class="pressure-grids">
                                     <div class="pressure-grid">
-                                        <div class="grid-title">黄埔站</div>
+                                        <div class="grid-title">{{ currentPipelineData.startStation.name }}</div>
                                         <div class="monitor-item">
                                             <span class="label">最高进站压力</span>
-                                            <span class="value">4.0 MPa</span>
+                                            <span class="value">{{ currentPipelineData.startStation.maxPressure }}</span>
                                         </div>
                                         <div class="monitor-item">
                                             <span class="label">最低进站压力</span>
-                                            <span class="value">1.6 MPa</span>
+                                            <span class="value">{{ currentPipelineData.startStation.minPressure }}</span>
                                         </div>
                                     </div>
                                     <div class="pressure-grid">
-                                        <div class="grid-title">东莞站</div>
+                                        <div class="grid-title">{{ currentPipelineData.endStation.name }}</div>
                                         <div class="monitor-item">
                                             <span class="label">最高进站压力</span>
-                                            <span class="value">3.8 MPa</span>
+                                            <span class="value">{{ currentPipelineData.endStation.maxPressure }}</span>
                                         </div>
                                         <div class="monitor-item">
                                             <span class="label">最低进站压力</span>
-                                            <span class="value">1.5 MPa</span>
+                                            <span class="value">{{ currentPipelineData.endStation.minPressure }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -113,35 +140,35 @@
                                 <div class="info-grid">
                                     <div class="info-item">
                                         <span class="label">管道长度：</span>
-                                        <span class="value">11 km</span>
+                                        <span class="value">{{ currentPipelineData.details.length }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="label">最大年输量：</span>
-                                        <span class="value">11 万吨</span>
+                                        <span class="value">{{ currentPipelineData.details.maxYearThroughput }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="label">最小年输量：</span>
-                                        <span class="value">1 万吨</span>
+                                        <span class="value">{{ currentPipelineData.details.minYearThroughput }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="label">站场编号：</span>
-                                        <span class="value">11</span>
+                                        <span class="value">{{ currentPipelineData.details.stationCode }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="label">管道直径：</span>
-                                        <span class="value">508 mm</span>
+                                        <span class="value">{{ currentPipelineData.details.diameter }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="label">壁厚：</span>
-                                        <span class="value">7.9 mm</span>
+                                        <span class="value">{{ currentPipelineData.details.thickness }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="label">设计压力：</span>
-                                        <span class="value">6.4 MPa</span>
+                                        <span class="value">{{ currentPipelineData.details.designPressure }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="label">管道材质：</span>
-                                        <span class="value">L360</span>
+                                        <span class="value">{{ currentPipelineData.details.material }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -150,35 +177,35 @@
                                 <div class="info-grid">
                                     <div class="info-item">
                                         <span class="label">运行方式：</span>
-                                        <span class="value">并联</span>
+                                        <span class="value">{{ currentPipelineData.details.operationMode }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="label">最高进站压力：</span>
-                                        <span class="value">4 MPa</span>
+                                        <span class="value">{{ currentPipelineData.details.maxInPressure }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="label">最低进站压力：</span>
-                                        <span class="value">1.6 MPa</span>
+                                        <span class="value">{{ currentPipelineData.details.minInPressure }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="label">最高出站压力：</span>
-                                        <span class="value">4 MPa</span>
+                                        <span class="value">{{ currentPipelineData.details.maxOutPressure }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="label">环境温度：</span>
-                                        <span class="value">26 ℃</span>
+                                        <span class="value">{{ currentPipelineData.details.envTemp }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="label">介质温度：</span>
-                                        <span class="value">35 ℃</span>
+                                        <span class="value">{{ currentPipelineData.details.mediumTemp }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="label">流量：</span>
-                                        <span class="value">800 m³/h</span>
+                                        <span class="value">{{ currentPipelineData.details.flow }}</span>
                                     </div>
                                     <div class="info-item">
                                         <span class="label">运行状态：</span>
-                                        <span class="value status-warning">停输</span>
+                                        <span class="value" :class="currentPipelineData.status === '运行中' ? 'status-normal' : 'status-warning'">{{ currentPipelineData.status }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -427,11 +454,11 @@
                                 <div class="panel-title">操作控制台</div>
                                 <div class="panel-content">
                                     <div class="panel-buttons">
-                                        <button class="control-btn primary">
+                                        <button class="control-btn primary" @click="showConfigDialog">
                                             <i class="el-icon-setting"></i>
                                             <span>配置处置</span>
                                         </button>
-                                        <button class="control-btn warning">
+                                        <button class="control-btn warning" @click="showAlarmDialog">
                                             <i class="el-icon-bell"></i>
                                             <span>启动警报</span>
                                         </button>
@@ -543,7 +570,8 @@
                                                 <div class="countdown-box" :class="selectedValve === '阀室#1' ? 'danger' : 'warning'">
                                                     <div class="countdown-display">
                                                         <span class="countdown">{{ selectedValve === '阀室#1' ? formattedCountdowns['阀室#1'] : formattedCountdowns['阀室#2'] }}</span>
-                                                        <span class="countdown-label">分:秒</span>
+                                                        <!-- <span class="countdown-label">分:秒</span> -->
+                                                        
                                                     </div>
                                                 </div>
                                             </div>
@@ -553,6 +581,246 @@
                                         <el-button type="primary" icon="el-icon-view">查看历史</el-button>
                                         <el-button type="warning" icon="el-icon-bell">设置警报</el-button>
                                         <el-button v-if="selectedValve === '阀室#1'" type="danger" icon="el-icon-warning-outline">应急处置</el-button>
+                                    </div>
+                                </div>
+                            </div>
+                        </el-dialog>
+                        
+                        <!-- 警报启动弹窗 -->
+                        <el-dialog
+                            title="启动警报"
+                            :visible.sync="alarmDialogVisible"
+                            width="45%"
+                            custom-class="valve-detail-dialog alarm-detail-dialog"
+                            :modal-append-to-body="false"
+                            :append-to-body="true"
+                            :close-on-click-modal="false"
+                            :modal="false"
+                            :lock-scroll="false"
+                        >
+                            <div class="valve-detail-content">
+                                <div class="valve-detail-header">
+                                    <div class="valve-detail-title">管段高点汽化风险警报</div>
+                                    <div class="valve-detail-status danger">高风险</div>
+                                </div>
+                                <div class="valve-detail-body">
+                                    <div class="valve-detail-info">
+                                        <div class="info-section">
+                                            <h3>警报详情</h3>
+                                            <div class="info-grid">
+                                                <div class="info-item">
+                                                    <span class="label">风险级别：</span>
+                                                    <span class="value danger">高风险</span>
+                                                </div>
+                                                <div class="info-item">
+                                                    <span class="label">风险点：</span>
+                                                    <span class="value">阀室#1 (K125+600)</span>
+                                                </div>
+                                                <div class="info-item">
+                                                    <span class="label">预警时间：</span>
+                                                    <span class="value">{{ new Date().toLocaleString() }}</span>
+                                                </div>
+                                                <div class="info-item">
+                                                    <span class="label">预计汽化时间：</span>
+                                                    <span class="value danger">{{ formattedCountdowns['阀室#1'] }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="info-section">
+                                            <h3>警报等级设置</h3>
+                                            <div class="alarm-level-grid">
+                                                <div class="level-option" :class="{ active: selectedAlarmLevel === 'low' }" @click="selectedAlarmLevel = 'low'">
+                                                    <div class="level-icon">
+                                                        <div class="level-dot low"></div>
+                                                    </div>
+                                                    <div class="level-content">
+                                                        <div class="level-title">低级警报</div>
+                                                        <div class="level-desc">仅通知操作人员</div>
+                                                    </div>
+                                                </div>
+                                                <div class="level-option" :class="{ active: selectedAlarmLevel === 'medium' }" @click="selectedAlarmLevel = 'medium'">
+                                                    <div class="level-icon">
+                                                        <div class="level-dot medium"></div>
+                                                    </div>
+                                                    <div class="level-content">
+                                                        <div class="level-title">中级警报</div>
+                                                        <div class="level-desc">通知操作人员和站长</div>
+                                                    </div>
+                                                </div>
+                                                <div class="level-option" :class="{ active: selectedAlarmLevel === 'high' }" @click="selectedAlarmLevel = 'high'">
+                                                    <div class="level-icon">
+                                                        <div class="level-dot high"></div>
+                                                    </div>
+                                                    <div class="level-content">
+                                                        <div class="level-title">高级警报</div>
+                                                        <div class="level-desc">通知全站人员和应急小组</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- <div class="info-section">
+                                            <h3>通知方式</h3>
+                                            <div class="notification-grid">
+                                                <div class="notification-item">
+                                                    <el-checkbox v-model="notificationMethods.sms">短信通知</el-checkbox>
+                                                </div>
+                                                <div class="notification-item">
+                                                    <el-checkbox v-model="notificationMethods.email">邮件通知</el-checkbox>
+                                                </div>
+                                                <div class="notification-item">
+                                                    <el-checkbox v-model="notificationMethods.app">APP推送</el-checkbox>
+                                                </div>
+                                                <div class="notification-item">
+                                                    <el-checkbox v-model="notificationMethods.phone">电话通知</el-checkbox>
+                                                </div>
+                                            </div>
+                                        </div> -->
+                                    </div>
+                                    <div class="action-buttons">
+                                        <el-button @click="alarmDialogVisible = false" icon="el-icon-close">取消</el-button>
+                                        <el-button type="danger" @click="triggerAlarm" icon="el-icon-warning-outline">确认启动警报</el-button>
+                                    </div>
+                                </div>
+                            </div>
+                        </el-dialog>
+                        
+                        <!-- 配置处置弹窗 -->
+                        <el-dialog
+                            title="配置处置方案"
+                            :visible.sync="configDialogVisible"
+                            width="55%"
+                            custom-class="valve-detail-dialog config-detail-dialog"
+                            :modal-append-to-body="false"
+                            :append-to-body="true"
+                            :close-on-click-modal="false"
+                            :modal="false"
+                            :lock-scroll="false"
+                        >
+                            <div class="valve-detail-content">
+                                <div class="valve-detail-header">
+                                    <div class="valve-detail-title">停输保压处置方案配置</div>
+                                    <div class="valve-detail-status" :class="currentPipelineData.status === '运行中' ? 'normal' : 'warning'">
+                                        {{ currentPipelineData.status }}
+                                    </div>
+                                </div>
+                                <div class="valve-detail-body">
+                                    <div class="valve-detail-info">
+                                        <div class="info-section">
+                                            <h3>停输保压状态</h3>
+                                            <div class="info-grid">
+                                                <div class="info-item">
+                                                    <span class="label">停输时长：</span>
+                                                    <span class="value">{{ currentPipelineData.stopDuration }}</span>
+                                                </div>
+                                                <div class="info-item">
+                                                    <span class="label">汽化风险点：</span>
+                                                    <span class="value danger">2个</span>
+                                                </div>
+                                                <div class="info-item">
+                                                    <span class="label">平均压降率：</span>
+                                                    <span class="value">0.03 MPa/h</span>
+                                                </div>
+                                                <div class="info-item">
+                                                    <span class="label">当前管段：</span>
+                                                    <span class="value">{{ currentPipelineData.name }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="info-section">
+                                            <h3>处置方案选择</h3>
+                                            <div class="plan-selector">
+                                                <el-radio-group v-model="selectedPlan" size="medium">
+                                                    <el-radio-button label="plan1">恒压保持法</el-radio-button>
+                                                    <el-radio-button label="plan2">缓降调整法</el-radio-button>
+                                                    <el-radio-button label="plan3">区间控制法</el-radio-button>
+                                                </el-radio-group>
+                                            </div>
+
+                                            <div class="plan-details" v-if="selectedPlan === 'plan1'">
+                                                <div class="plan-description">
+                                                    适用于停输时间12-24小时，环境温度稳定的情况。特点：压力保持恒定，监控频率高，安全性最佳。
+                                                </div>
+                                                <div class="param-config">
+                                                    <div class="param-item">
+                                                        <div class="param-label">初始压力 (MPa)：{{ planParams.initialPressure }} MPa</div>
+                                                        <el-slider v-model="planParams.initialPressure" :min="1.5" :max="2.5" :step="0.1"></el-slider>
+                                                    </div>
+                                                    <div class="param-item">
+                                                        <div class="param-label">监测频率 (小时)：{{ planParams.monitorInterval }} h</div>
+                                                        <el-slider v-model="planParams.monitorInterval" :min="0.5" :max="4" :step="0.5"></el-slider>
+                                                    </div>
+                                                    <div class="param-item">
+                                                        <div class="param-label">报警阈值 (MPa)：{{ planParams.alarmThreshold }} MPa</div>
+                                                        <el-slider v-model="planParams.alarmThreshold" :min="0.01" :max="0.2" :step="0.01"></el-slider>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="plan-details" v-if="selectedPlan === 'plan2'">
+                                                <div class="plan-description">
+                                                    适用于停输时间24-48小时，温度波动较大的情况。特点：允许压力缓慢下降，减少干预次数，节约能源。
+                                                </div>
+                                                <div class="param-config">
+                                                    <div class="param-item">
+                                                        <div class="param-label">初始压力 (MPa)：{{ planParams.initialPressure }} MPa</div>
+                                                        <el-slider v-model="planParams.initialPressure" :min="1.8" :max="2.8" :step="0.1"></el-slider>
+                                                    </div>
+                                                    <div class="param-item">
+                                                        <div class="param-label">监测频率 (小时)：{{ planParams.monitorInterval }} h</div>
+                                                        <el-slider v-model="planParams.monitorInterval" :min="1" :max="6" :step="0.5"></el-slider>
+                                                    </div>
+                                                    <div class="param-item">
+                                                        <div class="param-label">压降速率 (MPa/h)：{{ planParams.pressureDropRate }} MPa/h</div>
+                                                        <el-slider v-model="planParams.pressureDropRate" :min="0.01" :max="0.1" :step="0.01"></el-slider>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="plan-details" v-if="selectedPlan === 'plan3'">
+                                                <div class="plan-description">
+                                                    适用于长时间停输(>48小时)的情况。特点：设置压力上下限范围，监测频率低，减少设备磨损，操作简便。
+                                                </div>
+                                                <div class="param-config">
+                                                    <div class="param-item">
+                                                        <div class="param-label">上限压力 (MPa)：{{ planParams.maxPressure }} MPa</div>
+                                                        <el-slider v-model="planParams.maxPressure" :min="1.8" :max="2.5" :step="0.1"></el-slider>
+                                                    </div>
+                                                    <div class="param-item">
+                                                        <div class="param-label">下限压力 (MPa)：{{ planParams.minPressure }} MPa</div>
+                                                        <el-slider v-model="planParams.minPressure" :min="1.5" :max="2.0" :step="0.1"></el-slider>
+                                                    </div>
+                                                    <div class="param-item">
+                                                        <div class="param-label">监测频率 (小时)：{{ planParams.monitorInterval }} h</div>
+                                                        <el-slider v-model="planParams.monitorInterval" :min="2" :max="8" :step="1"></el-slider>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="info-section">
+                                            <h3>执行设置</h3>
+                                            <div class="info-grid execution-grid">
+                                                <div class="execution-item">
+                                                    <span class="label">自动执行：</span>
+                                                    <el-switch v-model="executionSettings.autoExecute"></el-switch>
+                                                </div>
+                                                <div class="execution-item">
+                                                    <span class="label">通知相关人员：</span>
+                                                    <el-switch v-model="executionSettings.notifyPersonnel"></el-switch>
+                                                </div>
+                                                <div class="execution-item">
+                                                    <span class="label">记录操作日志：</span>
+                                                    <el-switch v-model="executionSettings.logOperations" disabled></el-switch>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="action-buttons">
+                                        <el-button @click="configDialogVisible = false" icon="el-icon-close">取消</el-button>
+                                        <el-button type="primary" @click="applyConfig" icon="el-icon-check">应用配置</el-button>
                                     </div>
                                 </div>
                             </div>
@@ -590,6 +858,128 @@ export default {
     },
     data() {
         return {
+            selectedPipeline: 'pipeline1',
+            pipelineOptions: [
+                { value: 'pipeline1', label: '黄埔-东莞管段' },
+                { value: 'pipeline2', label: '阳江-恩平管段' },
+                { value: 'pipeline3', label: '恩平-鹤山管段' }
+            ],
+            pipelineData: {
+                pipeline1: {
+                    name: '黄埔 至 东莞',
+                    status: '停输',
+                    valvePoints: '11个',
+                    stopDuration: '16h',
+                    oilType: '92#',
+                    oilDensity: '745 kg/m³',
+                    heightDiff: '46 m',
+                    direction: '黄埔 -> 东莞',
+                    line: '珠三角管线',
+                    startStation: {
+                        name: '黄埔站',
+                        maxPressure: '4.0 MPa',
+                        minPressure: '1.6 MPa'
+                    },
+                    endStation: {
+                        name: '东莞站',
+                        maxPressure: '3.8 MPa',
+                        minPressure: '1.5 MPa'
+                    },
+                    details: {
+                        length: '11 km',
+                        maxYearThroughput: '11 万吨',
+                        minYearThroughput: '1 万吨',
+                        stationCode: '11',
+                        diameter: '508 mm',
+                        thickness: '7.9 mm',
+                        designPressure: '6.4 MPa',
+                        material: 'L360',
+                        operationMode: '并联',
+                        maxInPressure: '4 MPa',
+                        minInPressure: '1.6 MPa',
+                        maxOutPressure: '4 MPa',
+                        envTemp: '26 ℃',
+                        mediumTemp: '35 ℃',
+                        flow: '800 m³/h'
+                    }
+                },
+                pipeline2: {
+                    name: '阳江 至 恩平',
+                    status: '运行中',
+                    valvePoints: '8个',
+                    stopDuration: '0h',
+                    oilType: '95#',
+                    oilDensity: '760 kg/m³',
+                    heightDiff: '32 m',
+                    direction: '阳江 -> 恩平',
+                    line: '西部管线',
+                    startStation: {
+                        name: '茂名站',
+                        maxPressure: '4.5 MPa',
+                        minPressure: '1.8 MPa'
+                    },
+                    endStation: {
+                        name: '湛江站',
+                        maxPressure: '4.2 MPa',
+                        minPressure: '1.7 MPa'
+                    },
+                    details: {
+                        length: '16 km',
+                        maxYearThroughput: '15 万吨',
+                        minYearThroughput: '2 万吨',
+                        stationCode: '08',
+                        diameter: '610 mm',
+                        thickness: '8.1 mm',
+                        designPressure: '7.0 MPa',
+                        material: 'L415',
+                        operationMode: '串联',
+                        maxInPressure: '4.5 MPa',
+                        minInPressure: '1.8 MPa',
+                        maxOutPressure: '4.2 MPa',
+                        envTemp: '28 ℃',
+                        mediumTemp: '38 ℃',
+                        flow: '950 m³/h'
+                    }
+                },
+                pipeline3: {
+                    name: '恩平 至 鹤山',
+                    status: '停输',
+                    valvePoints: '6个',
+                    stopDuration: '8h',
+                    oilType: '0#柴油',
+                    oilDensity: '820 kg/m³',
+                    heightDiff: '25 m',
+                    direction: '恩平 -> 鹤山',
+                    line: '东部管线',
+                    startStation: {
+                        name: '恩平站',
+                        maxPressure: '3.6 MPa',
+                        minPressure: '1.4 MPa'
+                    },
+                    endStation: {
+                        name: '深圳站',
+                        maxPressure: '3.2 MPa',
+                        minPressure: '1.2 MPa'
+                    },
+                    details: {
+                        length: '9 km',
+                        maxYearThroughput: '9 万吨',
+                        minYearThroughput: '1.5 万吨',
+                        stationCode: '06',
+                        diameter: '457 mm',
+                        thickness: '7.6 mm',
+                        designPressure: '6.0 MPa',
+                        material: 'L360',
+                        operationMode: '并联',
+                        maxInPressure: '3.6 MPa',
+                        minInPressure: '1.4 MPa',
+                        maxOutPressure: '3.2 MPa',
+                        envTemp: '27 ℃',
+                        mediumTemp: '34 ℃',
+                        flow: '720 m³/h'
+                    }
+                }
+            },
             pipe_section: null,
             prediction_chart: null,
             proportion_chart: null,
@@ -607,7 +997,30 @@ export default {
                     seconds: 45
                 }
             },
-            countdownTimer: null
+            countdownTimer: null,
+            alarmDialogVisible: false,
+            selectedAlarmLevel: 'low',
+            notificationMethods: {
+                sms: false,
+                email: false,
+                app: false,
+                phone: false
+            },
+            executionSettings: {
+                autoExecute: false,
+                notifyPersonnel: false,
+                logOperations: false
+            },
+            selectedPlan: 'plan1',
+            planParams: {
+                initialPressure: 2.0,
+                monitorInterval: 1,
+                alarmThreshold: 0.05,
+                pressureDropRate: 0.01,
+                maxPressure: 2.5,
+                minPressure: 1.5
+            },
+            configDialogVisible: false
         }
     },
     computed: {
@@ -616,6 +1029,13 @@ export default {
                 '阀室#1': `${this.countdowns['阀室#1'].minutes.toString().padStart(2, '0')}:${this.countdowns['阀室#1'].seconds.toString().padStart(2, '0')}`,
                 '阀室#2': `${this.countdowns['阀室#2'].minutes.toString().padStart(2, '0')}:${this.countdowns['阀室#2'].seconds.toString().padStart(2, '0')}`
             }
+        },
+        currentPipelineData() {
+            return this.pipelineData[this.selectedPipeline];
+        },
+        currentPipelineLabel() {
+            const option = this.pipelineOptions.find(item => item.value === this.selectedPipeline);
+            return option ? option.label : '';
         }
     },
     mounted() {
@@ -637,6 +1057,15 @@ export default {
         clearInterval(this.countdownTimer);
     },
     methods: {
+        changePipeline(value) {
+            this.selectedPipeline = value;
+            // 更新图表和其他相关数据
+            this.$nextTick(() => {
+                this.draw_pipe_section();
+                this.draw_prediction_chart();
+                this.draw_risk_chart();
+            });
+        },
         draw_pipe_section() {
             const targetCoord = [500, 650]
             const curveness = 0
@@ -1654,6 +2083,22 @@ export default {
                     this.countdowns['阀室#2'].seconds = 59;
                 }
             }, 1000);
+        },
+        showConfigDialog() {
+            this.configDialogVisible = true;
+        },
+        showAlarmDialog() {
+            this.alarmDialogVisible = true;
+        },
+        triggerAlarm() {
+            // 这里应该添加启动警报的逻辑
+            console.log('启动警报');
+            this.alarmDialogVisible = false;
+        },
+        applyConfig() {
+            // 这里应该添加应用配置的逻辑
+            console.log('应用配置');
+            this.configDialogVisible = false;
         }
     }
 }
@@ -3678,3 +4123,539 @@ export default {
     font-size: 14px;
     opacity: 0.7;
 }
+
+/* 管段切换选择器样式 */
+.pipeline-selector {
+    padding: 15px;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 5px;
+}
+
+.pipeline-select {
+    width: 90%;
+}
+
+.pipeline-select .el-input__inner {
+    background: rgba(2, 32, 71, 0.9);
+    border: 1px solid #66dffb;
+    border-radius: 4px;
+    color: #ffffff;
+    font-size: 1.1rem;
+    height: 42px;
+    text-align: center !important;
+    box-shadow: 0 0 10px rgba(102, 223, 251, 0.3);
+    transition: all 0.3s ease;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+}
+
+.pipeline-select .el-input__inner::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+}
+
+.pipeline-select .el-input__suffix {
+    right: 10px;
+}
+
+.pipeline-select .el-select__caret {
+    color: #66dffb;
+    font-size: 18px;
+    transform: rotateZ(180deg);
+    transition: transform 0.3s;
+}
+
+.pipeline-select .el-select__caret.is-reverse {
+    transform: rotateZ(0);
+}
+
+.pipeline-icon {
+    color: #66dffb;
+    margin-right: 5px;
+}
+
+/* 自定义下拉菜单样式 */
+.pipeline-dropdown {
+    background: rgba(2, 32, 71, 0.95) !important;
+    border: 1px solid #66dffb !important;
+    border-radius: 4px !important;
+    box-shadow: 0 0 15px rgba(102, 223, 251, 0.4) !important;
+}
+
+.pipeline-dropdown .el-select-dropdown__item {
+    color: #ffffff !important;
+    font-size: 1.1rem !important;
+    height: 42px !important;
+    line-height: 42px !important;
+    padding: 0 20px !important;
+    border-bottom: 1px solid rgba(102, 223, 251, 0.1) !important;
+}
+
+.pipeline-dropdown .el-select-dropdown__item:last-child {
+    border-bottom: none !important;
+}
+
+.pipeline-dropdown .el-select-dropdown__item.hover,
+.pipeline-dropdown .el-select-dropdown__item:hover {
+    background-color: rgba(26, 106, 170, 0.5) !important;
+    color: #66dffb !important;
+}
+
+.pipeline-dropdown .el-select-dropdown__item.selected {
+    background-color: #1a6aaa !important;
+    color: #66dffb !important;
+    font-weight: bold !important;
+}
+
+.pipeline-dropdown .popper__arrow {
+    border-bottom-color: #66dffb !important;
+}
+
+.pipeline-dropdown .popper__arrow::after {
+    border-bottom-color: rgba(2, 32, 71, 0.95) !important;
+}
+
+
+<style scoped>
+/* Ensuring the outer style tag closure remains */
+</style>
+
+<style>
+/* Global dropdown styles */
+.pipeline-dropdown {
+    background: rgba(2, 32, 71, 0.95) !important;
+    border: 1px solid #66dffb !important;
+    border-radius: 4px !important;
+    box-shadow: 0 0 15px rgba(102, 223, 251, 0.4) !important;
+}
+
+.pipeline-dropdown .el-select-dropdown__item {
+    color: #ffffff !important;
+    font-size: 1.1rem !important;
+    height: 42px !important;
+    line-height: 42px !important;
+    padding: 0 20px !important;
+    border-bottom: 1px solid rgba(102, 223, 251, 0.1) !important;
+}
+
+.pipeline-dropdown .el-select-dropdown__item:last-child {
+    border-bottom: none !important;
+}
+
+.pipeline-dropdown .el-select-dropdown__item.hover,
+.pipeline-dropdown .el-select-dropdown__item:hover {
+    background-color: rgba(26, 106, 170, 0.5) !important;
+    color: #66dffb !important;
+}
+
+.pipeline-dropdown .el-select-dropdown__item.selected {
+    background-color: #1a6aaa !important;
+    color: #66dffb !important;
+    font-weight: bold !important;
+}
+
+.pipeline-dropdown .popper__arrow {
+    border-bottom-color: #66dffb !important;
+}
+
+.pipeline-dropdown .popper__arrow::after {
+    border-bottom-color: rgba(2, 32, 71, 0.95) !important;
+}
+</style>
+
+<style>
+/* Global dropdown styles */
+.pipeline-dropdown {
+    background: rgba(2, 32, 71, 0.95) !important;
+    border: 1px solid #66dffb !important;
+    border-radius: 4px !important;
+    box-shadow: 0 0 15px rgba(102, 223, 251, 0.4) !important;
+}
+
+.pipeline-dropdown .el-select-dropdown__item {
+    color: #ffffff !important;
+    font-size: 1.1rem !important;
+    height: 42px !important;
+    line-height: 42px !important;
+    padding: 0 20px !important;
+    border-bottom: 1px solid rgba(102, 223, 251, 0.1) !important;
+}
+
+.pipeline-dropdown .el-select-dropdown__item:last-child {
+    border-bottom: none !important;
+}
+
+.pipeline-dropdown .el-select-dropdown__item.hover,
+.pipeline-dropdown .el-select-dropdown__item:hover {
+    background-color: rgba(26, 106, 170, 0.5) !important;
+    color: #66dffb !important;
+}
+
+.pipeline-dropdown .el-select-dropdown__item.selected {
+    background-color: #1a6aaa !important;
+    color: #66dffb !important;
+    font-weight: bold !important;
+}
+
+.pipeline-dropdown .popper__arrow {
+    border-bottom-color: #66dffb !important;
+}
+
+.pipeline-dropdown .popper__arrow::after {
+    border-bottom-color: rgba(2, 32, 71, 0.95) !important;
+}
+
+.pipeline-select .el-input__inner::placeholder {
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+}
+
+.pipeline-select .el-input__inner:hover,
+.pipeline-select .el-input__inner:focus {
+    border-color: #00ffff;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+}
+</style>
+
+<style>
+/* 自定义下拉框样式 */
+.custom-select .el-input__inner {
+    text-align: center !important;
+    font-size: 15px !important;
+    background-color: rgba(2, 32, 71, 0.9) !important;
+    color: white !important;
+    border: 1px solid #66dffb !important;
+    border-radius: 4px !important;
+    height: 35px !important;
+    box-shadow: 0 0 10px rgba(102, 223, 251, 0.3) !important;
+    padding: 0 25px !important;
+    letter-spacing: 1px !important;
+}
+
+.custom-select .el-input {
+    display: flex !important;
+    justify-content: center !important;
+    text-align: center !important;
+}
+
+.custom-select .el-input__suffix {
+    right: 5px !important;
+}
+
+.invisible-select .el-input__inner {
+    opacity: 0;
+}
+</style>
+
+<style>
+/* 倒计时动画 */
+@keyframes blink {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* 透漏油监测信息样式 */
+</style>
+
+<style>
+/* 警报弹窗样式 */
+.alarm-dialog .el-dialog__header {
+    background: linear-gradient(to right, #8B0000, #A52A2A) !important;
+    border-bottom: 1px solid #ff4d4f !important;
+}
+
+.alarm-dialog .el-dialog__title {
+    color: #fff !important;
+    font-weight: bold !important;
+}
+
+.alarm-dialog-content {
+    background: #001529;
+    padding: 0;
+}
+
+.alarm-header {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 20px;
+    background: rgba(255, 77, 79, 0.1);
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.alarm-icon {
+    font-size: 40px;
+    color: #ff4d4f;
+    animation: blink 1s infinite;
+}
+
+.alarm-title {
+    color: #ff4d4f;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.alarm-section {
+    margin-bottom: 20px;
+}
+
+.alarm-section h3 {
+    color: #1890ff;
+    font-size: 18px;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(24, 144, 255, 0.2);
+}
+
+.alarm-details {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.alarm-detail-item {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 12px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.detail-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 16px;
+}
+
+.detail-value {
+    color: #1890ff;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.detail-value.danger {
+    color: #ff4d4f;
+}
+
+.alarm-level-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.level-option {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 15px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.level-option:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+.level-option.active {
+    box-shadow: 0 0 10px rgba(24, 144, 255, 0.5);
+    border: 1px solid #1890ff;
+    background: rgba(24, 144, 255, 0.1);
+}
+
+.level-icon {
+    margin-right: 10px;
+}
+
+.level-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+}
+
+.level-dot.low {
+    background-color: #52c41a;
+    box-shadow: 0 0 8px #52c41a;
+}
+
+.level-dot.medium {
+    background-color: #faad14;
+    box-shadow: 0 0 8px #faad14;
+}
+
+.level-dot.high {
+    background-color: #ff4d4f;
+    box-shadow: 0 0 8px #ff4d4f;
+    animation: blink 1s infinite;
+}
+
+.level-content {
+    flex: 1;
+}
+
+.level-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 5px;
+}
+
+.level-desc {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.notification-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+.notification-item {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 12px;
+    border-radius: 4px;
+}
+
+.notification-item .el-checkbox__label {
+    color: #fff;
+    font-size: 16px;
+}
+
+/* 配置处置弹窗样式 */
+.config-detail-dialog .el-dialog__header {
+    background: linear-gradient(to right, #003366, #006699) !important;
+    border-bottom: 1px solid #1890ff !important;
+}
+
+.config-detail-dialog .el-dialog__title {
+    color: #fff !important;
+    font-weight: bold !important;
+}
+
+.plan-selector {
+    margin-top: 15px;
+    margin-bottom: 20px;
+}
+
+.plan-selector .el-radio-group {
+    display: flex;
+    width: 100%;
+}
+
+.plan-selector .el-radio-button {
+    flex: 1;
+}
+
+.plan-selector .el-radio-button__inner {
+    width: 100%;
+    text-align: center;
+    background: rgba(24, 144, 255, 0.1);
+    border-color: #1890ff;
+    color: #1890ff;
+}
+
+.plan-selector .el-radio-button__orig-radio:checked + .el-radio-button__inner {
+    background-color: #1890ff;
+    color: #fff;
+    border-color: #1890ff;
+    box-shadow: -1px 0 0 0 #1890ff;
+}
+
+.plan-description {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    border-radius: 4px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.param-config {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.param-item {
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.param-label {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 16px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.param-item .el-slider__runway {
+    margin: 20px 0;
+}
+
+.param-item .el-slider__bar {
+    background-color: #1890ff;
+}
+
+.param-item .el-slider__button {
+    border-color: #1890ff;
+}
+
+.execution-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+}
+
+.execution-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 15px;
+    border-radius: 4px;
+}
+
+/* 弹窗统一样式 */
+.alarm-detail-dialog .el-dialog__body,
+.config-detail-dialog .el-dialog__body {
+    padding: 0;
+}
+
+.alarm-detail-dialog .valve-detail-status.danger {
+    background: rgba(255, 77, 79, 0.2);
+    color: #ff4d4f;
+    border: 1px solid #ff4d4f;
+}
+
+/* 覆盖Element UI组件样式 */
+.el-checkbox__input.is-checked + .el-checkbox__label {
+    color: #1890ff;
+}
+
+.el-checkbox__input.is-checked .el-checkbox__inner, 
+.el-checkbox__input.is-indeterminate .el-checkbox__inner {
+    background-color: #1890ff;
+    border-color: #1890ff;
+}
+
+.el-switch.is-checked .el-switch__core {
+    border-color: #1890ff;
+    background-color: #1890ff;
+}
+
+/* 自定义下拉框样式 */
+</style>
