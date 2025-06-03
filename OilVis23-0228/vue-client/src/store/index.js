@@ -45,7 +45,7 @@ const store=new Vuex.Store({
             state.Dyj=data[1]
             state.Dep=data[0]
             state.Dhs=data[1]
-            console.log(state.Dmm,state.Dyj)
+            console.log("state.Dmm,state.Dyj",state.Dmm,state.Dyj)
         },
         params(state,data){
             state.paramsData=data

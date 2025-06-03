@@ -90,6 +90,13 @@
         },
         mounted(){
             this.contactSocket()
+            // 输出Vuex state到控制台
+            this.logVuexState()
+            
+            // 设置定时器，每10秒输出一次最新的state
+            this.stateLogTimer = setInterval(() => {
+                this.logVuexState()
+            }, 10000)
         },
         methods:{
             contactSocket () {
@@ -122,6 +129,7 @@
 						}
 						this.ws1.onmessage = function (e) {
                             that.$store.commit('params',JSON.parse(e.data))
+                            console.log('收到3091端口数据:', JSON.parse(e.data))
                             // alert("数据更新")
 						}
 						this.ws1.onclose = function () {
@@ -135,12 +143,28 @@
 					console.log('当前浏览器不支持WebSocket！')
 				}
 			},
+            logVuexState() {
+                console.log('==== Vuex Store State ====')
+                console.log('Dmm:', this.$store.state.Dmm)
+                console.log('Dyj:', this.$store.state.Dyj)
+                console.log('Dep:', this.$store.state.Dep)
+                console.log('Dhs:', this.$store.state.Dhs)
+                console.log('Dgm:', this.$store.state.Dgm)
+                console.log('realtimedata:', this.$store.state.realtimedata)
+                console.log('paramsData:', this.$store.state.paramsData)
+                console.log('positions:', this.$store.state.positions)
+                console.log('========================')
+            }
         },
         beforeRouteLeave(to, from, next) {
 			this.ws.close();
 			this.ws=null
             this.ws1.close();
 			this.ws1=null
+            // 清除定时器
+            if (this.stateLogTimer) {
+                clearInterval(this.stateLogTimer)
+            }
 			console.log("关闭连接");
 			next();
             eventBus.$off()

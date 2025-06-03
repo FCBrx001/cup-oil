@@ -454,21 +454,30 @@ export default {
               fontSize: 12
             }
           },
+          backgroundColor: '#fff',
+          borderColor: '#e0e0e0',
+          borderWidth: 1,
+          borderRadius: 8,
+          shadowColor: 'rgba(0,0,0,0.15)',
+          shadowBlur: 8,
+          textStyle: {
+            color: '#222',
+            fontSize: 14
+          },
+          extraCssText: 'box-shadow: 0 2px 12px rgba(0,0,0,0.15);',
           formatter: (params) => {
             const distance = params[0].data[0].toFixed(1)
-            const mainData = params.filter(p =>
-              ['沿线压力', '沿线高程', '沿线温度'].includes(p.seriesName)
-            )
-            return `
-              <div style="padding:10px;background:rgba(0,0,0,0.8);border-radius:4px">
-                <div style="color:white;margin-bottom:5px;font-weight:bold">距离: ${distance} km</div>
-                ${mainData.map(p =>
-              `<div style="color:${p.color};display:flex;justify-content:space-between;margin:3px 0">
-                    ${p.seriesName}: ${p.data[1]} ${p.seriesName.includes('压力') ? 'MPa' : p.seriesName.includes('温度') ? '℃' : 'm'}
-                  </div>`
-            ).join('')}
-              </div>
-            `
+            let html = `<div style="font-weight:bold;margin-bottom:2px;">距离: ${distance} km</div>`;
+            const showNames = ['沿线压力', '沿线高程', '沿线温度'];
+            params.forEach(p => {
+              if (!showNames.includes(p.seriesName)) return;
+              let unit = '';
+              if (p.seriesName.includes('压力')) unit = 'MPa';
+              else if (p.seriesName.includes('温度')) unit = '℃';
+              else if (p.seriesName.includes('高程')) unit = 'm';
+              html += `<div style="margin:2px 0;">${p.marker}<span style='color:#222;'>${p.seriesName}:</span> <span style='font-weight:bold;'>${p.data[1]}</span> <span style='color:#888;'>${unit}</span></div>`;
+            });
+            return html;
           }
         },
         legend: [{
