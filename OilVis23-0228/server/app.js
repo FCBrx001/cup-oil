@@ -11,6 +11,7 @@ var Popup = require('./routes/popup_router')
 var OilBT = require('./routes/OilbatchTrack_router')
 var RealMonitor = require('./routes/realmonitor_router')
 var par_get = require('./routes/paramsGet')
+var hpDg_get = require('./routes/huangpuDongguanGet')
 var app = express();
 var verifyToken = require('./middlewares/verifyToken'); 
 // view engine setup
@@ -38,6 +39,7 @@ app.use('/Popup',Popup)
 app.use('/OilBT',OilBT)
 app.use('/RealMonitor',RealMonitor)
 app.use('/parget',par_get)
+app.use('/hpdg',hpDg_get)
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));

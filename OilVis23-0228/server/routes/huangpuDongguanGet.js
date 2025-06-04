@@ -13,7 +13,7 @@ class HuangpuDongguan_cube extends vis_cube{
         
         // 重写数据库设置，但不关闭原有连接
         this.dbName = '黄埔-东莞管段';
-        this.collectionName = '2024年5月-6月';
+        this.collectionName = '2024年7月-8月';
         this.flag = 0;
         
         // 直接创建新的连接
