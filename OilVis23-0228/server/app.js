@@ -12,6 +12,7 @@ var OilBT = require('./routes/OilbatchTrack_router')
 var RealMonitor = require('./routes/realmonitor_router')
 var par_get = require('./routes/paramsGet')
 var hpDg_get = require('./routes/huangpuDongguanGet')
+var elevation_get = require('./routes/elevationDataGet')
 var app = express();
 var verifyToken = require('./middlewares/verifyToken'); 
 // view engine setup
@@ -30,9 +31,23 @@ app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
+
+// 添加CORS支持
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
+
 app.use(express.static(path.join(__dirname, "dist"
 )));
 app.use('/Judge', Judge)
+app.use('/elevation',elevation_get)
 app.use(verifyToken);
 app.use('/RT',RT)
 app.use('/Popup',Popup)

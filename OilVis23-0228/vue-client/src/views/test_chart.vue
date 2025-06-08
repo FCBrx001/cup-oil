@@ -1,25 +1,6 @@
 <template>
-  <div class='chartground' style='width:100%;height:350px'>
-    <div :id='elId' style='width:100%;height:100%'></div>
-    <el-dialog :visible.sync="dialogVisible" :title="`里程点 ${clickInfo.distance}km 压力变化趋势`" width="50%" style="height: 100%;top: 80px;" :modal="true"
-      :modal-append-to-body="false" :append-to-body="true" :close-on-click-modal="true" :show-close="true"
-      destroy-on-close custom-class="dark-dialog large-dialog">
-      <div class="trend-container">
-        <div class="time-selector">
-          <div class="selector-group">
-            <el-radio-group v-model="timeRange" @change="handleTimeRangeChange" size="small">
-              <el-radio-button label="24h">24小时</el-radio-button>
-              <el-radio-button label="7d">7天</el-radio-button>
-              <el-radio-button label="30d">30天</el-radio-button>
-            </el-radio-group>
-            <el-date-picker v-model="selectedDate" type="date" placeholder="选择日期" format="yyyy-MM-dd"
-              value-format="yyyy-MM-dd" @change="handleDateChange" size="small" style="margin-left: 20px;">
-            </el-date-picker>
-          </div>
-        </div>
-        <div id="trendChart" style="width:100%;height:450px;"></div>
-      </div>
-    </el-dialog>
+  <div class='chart-container' style='width:100%;height:350px'>
+    <div :id='chartId' style='width:100%;height:100%'></div>
   </div>
 </template>
 
@@ -31,516 +12,351 @@ export default {
   name: 'TestChart',
   data() {
     return {
-      elId: '',
-      charts: null,
-      trendChart: null,
-      times: 1,
-      distance: 94.4, // 恩平到阳江的直线距离（公里）
-      numPoints: 10,  // 数据点数量
-      pressure: [],
-      elevation: [],
-      temperature: [],
-      pressureColumns: [], // 存储所有压力液柱数据
-      dialogVisible: false,
-      timeRange: '24h',
-      selectedDate: new Date().toISOString().split('T')[0],
-      clickInfo: {
-        distance: 0,
-        elevation: 0,
-        pressure: 0
-      }
+      chartId: '',
+      chart: null,
+      pipelineData: [],
+      maxMileage: 0,
+      isLoading: false,
+      dataSource: '', // 数据源类型
+      resizeHandler: null,
+      samplingInterval: 50 // 数据抽样间隔，每50个数据点显示一个
     }
   },
   created() {
-    this.elId = uuidv1()
+    this.chartId = uuidv1()
   },
   mounted() {
-    this.generateRandomData()
-    this.drawLine(this.elId)
+    this.initChart()
+    this.fetchPipelineData()
+  },
+  beforeDestroy() {
+    if (this.chart) {
+      this.chart.dispose()
+    }
+    if (this.resizeHandler) {
+      window.removeEventListener('resize', this.resizeHandler)
+    }
   },
   methods: {
-    generateRandomData() {
-      // 生成带趋势的随机数据（用于高程）
-      const generateTrend = (start, end, volatility = 0.05) => {
-        const result = []
-        const step = (end - start) / this.numPoints
-        for (let i = 0; i <= this.numPoints; i++) {
-          const baseValue = start + i * step
-          const randomFluctuation = (Math.random() - 0.5) * volatility * baseValue
-          result.push((baseValue + randomFluctuation).toFixed(2))
-        }
-        return result
+    initChart() {
+      this.chart = echarts.init(document.getElementById(this.chartId))
+      this.showLoadingChart()
+    },
+
+    showLoadingChart() {
+      const loadingOption = {
+        title: {
+          text: '正在加载管线数据...',
+          left: 'center',
+          top: 'center',
+          textStyle: {
+            color: '#ffffff',
+            fontSize: 16
+          }
+        },
+        backgroundColor: 'transparent'
       }
+      this.chart.setOption(loadingOption)
+    },
 
-      // 生成更真实的压力数据
-      const generatePressure = () => {
-        const result = []
-        const basePressure = 2.02 // 基础压力
-        let currentPressure = basePressure
-
-        for (let i = 0; i <= this.numPoints; i++) {
-          // 模拟地形影响 - 增加波动幅度
-          const terrainEffect = Math.sin(i / this.numPoints * Math.PI * 5) * 0.05 +
-                              Math.cos(i / this.numPoints * Math.PI * 2) * 0.03
-
-          // 模拟流量波动影响 - 增加随机性
-          const flowEffect = (Math.random() - 0.5) * 0.03
-
-          // 模拟管道摩擦损失 - 保持基本趋势
-          const frictionEffect = -(i / this.numPoints) * 0.02
-
-          // 添加周期性波动
-          const periodicEffect = Math.sin(i / this.numPoints * Math.PI * 8) * 0.04
-
-          // 组合所有影响因素
-          currentPressure = basePressure + terrainEffect + flowEffect + frictionEffect + periodicEffect
-
-          // 确保压力在合理范围内
-          currentPressure = Math.max(1.95, Math.min(2.1, currentPressure))
-
-          result.push(currentPressure.toFixed(3))
-        }
-        return result
-      }
-
-      // 生成更真实的温度数据
-      const generateTemperature = () => {
-        const result = []
-        const baseTemp = 45 // 油品基础温度，一般在45度左右
-        let currentTemp = baseTemp
-        let trend = 0 // 用于生成温度趋势
-
-        for (let i = 0; i <= this.numPoints; i++) {
-          // 模拟管道保温效果下的缓慢热损失 - 增加波动
-          const heatLoss = -(i / this.numPoints) * 5 + 
-                          Math.sin(i / this.numPoints * Math.PI * 3) * 2
-
-          // 模拟局部热交换影响 - 增加波动频率
-          const localEffect = Math.sin(i / this.numPoints * Math.PI * 6) * 1.5 +
-                            Math.cos(i / this.numPoints * Math.PI * 4) * 0.8
-
-          // 模拟微小的随机波动 - 增加波动幅度
-          const randomEffect = (Math.random() - 0.5) * 0.8
-
-          // 添加周期性温度波动
-          const periodicEffect = Math.sin(i / this.numPoints * Math.PI * 10) * 1.2
-
-          // 添加缓慢的温度趋势变化
-          trend += (Math.random() - 0.5) * 0.1
-          trend = Math.max(-1.5, Math.min(1.5, trend))
-
-          // 组合所有影响因素
-          currentTemp = baseTemp + heatLoss + localEffect + randomEffect + trend + periodicEffect
-
-          // 确保温度在合理范围内
-          currentTemp = Math.max(38, Math.min(52, currentTemp))
-
-          result.push(currentTemp.toFixed(2))
-        }
-        return result
-      }
-
-      // 生成所有点的压力液柱数据
-      const generatePressureColumns = (elevationData, pressureData) => {
-        const result = []
-        const step = this.distance / this.numPoints
-        const maxPressure = Math.max(...this.pressure) + 0.1
-        const minPressure = Math.min(...this.pressure) - 0.1
-
-        for (let i = 0; i <= this.numPoints; i++) {
-          const position = i * step
-          const baseHeight = parseFloat(elevationData[i])
-          const pressure = parseFloat(this.pressure[i])
-          const fixedHeight = 200
-          const pressureRatio = (pressure - minPressure) / (maxPressure - minPressure)
-          const dataHeight = fixedHeight * pressureRatio
-
-          // 外框（背景柱）
-          result.push({
-            name: `压力外框${i}`,
-            type: 'line',
-            data: [[position, baseHeight], [position, baseHeight + fixedHeight]],
-            symbol: 'none',
-            lineStyle: {
-              width: 20,
-              color: '#0e2147',
-              borderRadius: 4
+    async fetchPipelineData() {
+      this.isLoading = true
+      try {
+        console.log('🔍 开始获取管线数据...')
+        const response = await this.$axios.get('/elevation/elevation-data')
+        
+        console.log('📡 API响应:', response.data)
+        
+        if (response.data.success && response.data.data && response.data.data.length > 0) {
+          // 处理真实数据 - 里程单位转换：米 → 千米
+          const allData = response.data.data.map(item => ({
+            _id: item._id,
+            里程: parseFloat(item.里程) / 1000, // 米转换为千米
+            高程: parseFloat(item.高程)
+          }))
+          
+          // 确保数据按里程排序
+          allData.sort((a, b) => a.里程 - b.里程)
+          
+          // 数据抽样：每50个数据点显示一个值
+          this.pipelineData = []
+          for (let i = 0; i < allData.length; i += this.samplingInterval) {
+            this.pipelineData.push(allData[i])
+          }
+          
+          // 确保包含最后一个数据点
+          if (allData.length > 0 && this.pipelineData[this.pipelineData.length - 1] !== allData[allData.length - 1]) {
+            this.pipelineData.push(allData[allData.length - 1])
+          }
+          
+          this.maxMileage = response.data.maxDistance ? response.data.maxDistance / 1000 : Math.max(...this.pipelineData.map(item => item.里程))
+          
+          console.log('✅ 成功获取管线数据:', {
+            totalDataCount: allData.length,
+            displayedDataCount: this.pipelineData.length,
+            samplingRatio: `1:${Math.floor(allData.length / this.pipelineData.length)}`,
+            maxMileage: this.maxMileage.toFixed(3) + ' km',
+            minMileage: Math.min(...this.pipelineData.map(item => item.里程)).toFixed(3) + ' km',
+            elevationRange: {
+              min: Math.min(...this.pipelineData.map(item => item.高程)).toFixed(1) + ' m',
+              max: Math.max(...this.pipelineData.map(item => item.高程)).toFixed(1) + ' m',
+              hasNegativeValues: Math.min(...this.pipelineData.map(item => item.高程)) < 0
             },
-            emphasis: {
-              lineStyle: {
-                width: 20
-              }
-            },
-            yAxisIndex: 3
+            sampleData: this.pipelineData.slice(0, 3),
+            message: response.data.message || '从数据库获取数据（里程已转换为千米，已抽样显示）'
           })
-
-          // 内部液柱
-          result.push({
-            name: `压力液柱${i}`,
-            type: 'line',
-            data: [[position, baseHeight], [position, baseHeight + dataHeight]],
-            symbol: 'none',
-            lineStyle: {
-              width: 14,
-              color: '#1a9bfc',
-              borderRadius: 4
-            },
-            emphasis: {
-              lineStyle: {
-                width: 14
-              }
-            },
-            tooltip: {
-              formatter: function (params) {
-                return `距离: ${position.toFixed(1)} km
-                          沿线压力: ${pressure.toFixed(3)} MPa
-                          沿线高程: ${baseHeight} m
-                          沿线温度: ${this.temperature[i]} ℃`
-              }
-            },
-            yAxisIndex: 3
-          })
-
-          // 压力值文本显示
-          // result.push({
-          //   name: `压力值${i}`,
-          //   type: 'scatter',
-          //   data: [[position, baseHeight + dataHeight + 10]],
-          //   symbol: 'none',
-          //   label: {
-          //     show: true,
-          //     formatter: `${pressure.toFixed(2)}`,
-          //     position: 'top',
-          //     color: '#fff',
-          //     fontSize: 12
-          //   },
-          //   yAxisIndex: 3
-          // })
-        }
-        return result
-      }
-
-      this.elevation = generateTrend(60, 500, 2)   // 米
-      this.pressure = generatePressure()  // MPa
-      this.temperature = generateTemperature()    // ℃
-      this.pressureColumns = generatePressureColumns(this.elevation, this.pressure)
-    },
-
-    handleTimeRangeChange(value) {
-      console.log('Time range changed:', value)
-      this.showPressureTrend()
-    },
-
-    handleDateChange(value) {
-      console.log('Date changed:', value)
-      this.showPressureTrend()
-    },
-
-    // 生成压力趋势数据
-    generatePressureTrend(baseValue) {
-      const data = []
-      let points = 24
-      let interval = '小时'
-
-      switch (this.timeRange) {
-        case '7d':
-          points = 7 * 24
-          interval = '天'
-          break
-        case '30d':
-          points = 30 * 24
-          interval = '天'
-          break
-        default:
-          points = 24
-          interval = '小时'
-      }
-
-      for (let i = 0; i < points; i++) {
-        // 添加随机波动，但保持在合理范围内
-        const randomFluctuation = (Math.random() - 0.5) * 0.05
-        const value = baseValue + randomFluctuation
-
-        let timeLabel
-        if (interval === '小时') {
-          timeLabel = `${(i % 24).toString().padStart(2, '0')}:00`
+          
+          this.dataSource = response.data.message ? 
+            (response.data.message.includes('模拟') ? '模拟数据' : '数据库数据') : 
+            '数据库数据'
+          
+          this.renderChart()
         } else {
-          const date = new Date(this.selectedDate)
-          date.setDate(date.getDate() + Math.floor(i / 24))
-          timeLabel = `${date.getMonth() + 1}/${date.getDate()}`
+          console.warn('⚠️ 未获取到有效数据，使用模拟数据')
+          console.warn('API响应详情:', response.data)
+          this.generateMockData()
+          this.renderChart()
         }
-
-        data.push([
-          timeLabel,
-          parseFloat(value.toFixed(3))
-        ])
+      } catch (error) {
+        console.error('❌ 获取管线数据失败:', error)
+        console.error('错误详情:', error.response && error.response.data ? error.response.data : error.message)
+        console.warn('🔄 回退到模拟数据')
+        this.generateMockData()
+        this.renderChart()
+      } finally {
+        this.isLoading = false
       }
-
-      // 如果是按天显示，则取每天的平均值
-      if (interval === '天') {
-        const dailyData = []
-        for (let i = 0; i < data.length; i += 24) {
-          const dayData = data.slice(i, i + 24)
-          const avgValue = dayData.reduce((sum, item) => sum + item[1], 0) / dayData.length
-          dailyData.push([dayData[0][0], parseFloat(avgValue.toFixed(3))])
-        }
-        return dailyData
-      }
-
-      return data
     },
 
-    // 显示压力趋势图
-    showPressureTrend() {
-      this.$nextTick(() => {
-        if (this.trendChart) {
-          this.trendChart.dispose()
+    generateMockData() {
+      this.maxMileage = 94.4
+      this.dataSource = '前端模拟数据'
+      
+      // 生成更多的模拟数据，然后进行抽样
+      const allMockData = []
+      for (let i = 0; i < 500; i++) { // 生成500个模拟数据点
+        const distance = (94.4 * i) / 499 // 均匀分布在0到94.4公里
+        // 修改高程生成逻辑，包含负值（如隧道、地下管段等）
+        let elevation = -20 + Math.random() * 520 + Math.sin(i / 499 * Math.PI * 3) * 150 // 范围从-170到+500米
+        
+        // 在某些区段添加负值（模拟地下管段或隧道）
+        if (i >= 100 && i <= 150) {
+          elevation = -50 + Math.random() * 30 // -50到-20米的地下管段
+        } else if (i >= 250 && i <= 300) {
+          elevation = -30 + Math.random() * 40 // -30到+10米的低洼区段
         }
-
-        this.trendChart = echarts.init(document.getElementById('trendChart'))
-        const trendData = this.generatePressureTrend(this.clickInfo.pressure)
-
-        const trendOptions = {
-          // backgroundColor: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
-          //   offset: 0,
-          //   color: '#0f1c3c'
-          // }, {
-          //   offset: 1,
-          //   color: '#0a1128'
-          // }]),
-          grid: {
-            left: '5%',
-            right: '5%',
-            bottom: '10%',
-            top: '10%',
-            containLabel: true
-          },
-          tooltip: {
-            trigger: 'axis',
-            axisPointer: {
-              type: 'cross'
-            },
-            backgroundColor: 'rgba(0,0,0,0.7)',
-            borderWidth: 0,
-            textStyle: {
-              color: '#fff'
-            }
-          },
-          xAxis: {
-            type: 'category',
-            boundaryGap: false,
-            data: trendData.map(item => item[0]),
-            axisLabel: {
-              color: 'rgba(255,255,255,0.8)',
-              rotate: this.timeRange !== '24h' ? 45 : 0
-            },
-            axisLine: {
-              lineStyle: {
-                color: 'rgba(255,255,255,0.3)'
-              }
-            },
-            splitLine: {
-              show: true,
-              lineStyle: {
-                color: 'rgba(255,255,255,0.1)',
-                type: 'dashed'
-              }
-            }
-          },
-          yAxis: {
-            type: 'value',
-            name: '压力(MPa)',
-            nameTextStyle: {
-              color: 'rgba(255,255,255,0.8)'
-            },
-            min: function (value) {
-              return (value.min - 0.05).toFixed(3)
-            },
-            max: function (value) {
-              return (value.max + 0.05).toFixed(3)
-            },
-            axisLabel: {
-              color: 'rgba(255,255,255,0.8)',
-              formatter: '{value} MPa'
-            },
-            axisLine: {
-              lineStyle: {
-                color: 'rgba(255,255,255,0.3)'
-              }
-            },
-            splitLine: {
-              lineStyle: {
-                color: 'rgba(255,255,255,0.1)'
-              }
-            }
-          },
-          series: [{
-            name: '压力',
-            type: 'line',
-            smooth: true,
-            symbol: 'circle',
-            symbolSize: this.timeRange === '24h' ? 8 : 6,
-            data: trendData.map(item => item[1]),
-            lineStyle: {
-              width: 3,
-              color: '#1a9bfc'
-            },
-            itemStyle: {
-              color: '#1a9bfc',
-              borderWidth: 2,
-              borderColor: '#fff'
-            },
-            areaStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                {
-                  offset: 0,
-                  color: 'rgba(26,155,252,0.3)'
-                },
-                {
-                  offset: 1,
-                  color: 'rgba(26,155,252,0.1)'
-                }
-              ])
-            }
-          }]
-        }
-
-        this.trendChart.setOption(trendOptions)
+        
+        allMockData.push({
+          _id: `mock_${i + 1}`,
+          里程: parseFloat(distance.toFixed(3)),
+          高程: parseFloat(elevation.toFixed(1))
+        })
+      }
+      
+      // 应用相同的抽样策略：每50个显示一个
+      this.pipelineData = []
+      for (let i = 0; i < allMockData.length; i += this.samplingInterval) {
+        this.pipelineData.push(allMockData[i])
+      }
+      
+      // 确保包含最后一个数据点
+      if (allMockData.length > 0 && this.pipelineData[this.pipelineData.length - 1] !== allMockData[allMockData.length - 1]) {
+        this.pipelineData.push(allMockData[allMockData.length - 1])
+      }
+      
+      console.log('📊 模拟数据生成:', {
+        totalMockData: allMockData.length,
+        displayedData: this.pipelineData.length,
+        samplingRatio: `1:${Math.floor(allMockData.length / this.pipelineData.length)}`
       })
     },
 
-    drawLine(id) {
-      if (this.times === 1) {
-        this.charts = echarts.init(document.getElementById(id))
-        // 添加点击事件监听
-        this.charts.on('click', (params) => {
-          console.log('Chart clicked:', params)
-          console.log('Series name:', params.seriesName)
-          console.log('Data:', params.data)
+    generatePressureData() {
+      return this.pipelineData.map((item, index) => {
+        const basePressure = 2.0
+        const elevationEffect = -item.高程 * 0.0001
+        const distanceEffect = -(item.里程 / this.maxMileage) * 0.05
+        const randomVariation = (Math.random() - 0.5) * 0.02
+        
+        const pressure = basePressure + elevationEffect + distanceEffect + randomVariation
+        return [item.里程, Math.max(1.95, Math.min(2.05, pressure)).toFixed(3)]
+      })
+    },
 
-          if (params.seriesName === '沿线高程') {
-            console.log('Elevation point clicked!')
-            // 确保数据存在且为数字
-            const distance = typeof params.data[0] === 'number' ? params.data[0] : parseFloat(params.data[0])
-            const elevation = typeof params.data[1] === 'number' ? params.data[1] : parseFloat(params.data[1])
-            const pressureIndex = Math.floor(distance / (this.distance / this.numPoints))
-            const pressure = parseFloat(this.pressure[pressureIndex])
+    generateTemperatureData() {
+      return this.pipelineData.map((item, index) => {
+        const baseTemp = 45
+        const heatLoss = -(item.里程 / this.maxMileage) * 3
+        const elevationEffect = -item.高程 * 0.002
+        const randomVariation = (Math.random() - 0.5) * 1.0
+        
+        const temperature = baseTemp + heatLoss + elevationEffect + randomVariation
+        return [item.里程, Math.max(40, Math.min(50, temperature)).toFixed(1)]
+      })
+    },
 
-            this.clickInfo.distance = distance.toFixed(1)
-            this.clickInfo.elevation = elevation.toFixed(2)
-            this.clickInfo.pressure = pressure
+    generateElevationData() {
+      return this.pipelineData.map(item => [item.里程, item.高程])
+    },
 
-            this.dialogVisible = true
-            this.showPressureTrend()
-          }
-        })
-        this.times++
+    renderChart() {
+      if (!this.pipelineData || this.pipelineData.length === 0) {
+        console.warn('⚠️ 没有数据可渲染')
+        return
       }
-      const options = {
-        // backgroundColor: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
-        //   offset: 0,
-        //   color: '#0f1c3c'
-        // }, {
-        //   offset: 1,
-        //   color: '#0a1128'
-        // }]),
+
+      const pressureData = this.generatePressureData()
+      const temperatureData = this.generateTemperatureData()
+      const elevationData = this.generateElevationData()
+
+      // 计算高程的范围，用于更好的Y轴显示
+      const elevations = elevationData.map(item => item[1])
+      const minElevation = Math.min(...elevations)
+      const maxElevation = Math.max(...elevations)
+      const elevationRange = maxElevation - minElevation
+
+      console.log('📊 图表数据统计:', {
+        dataPoints: this.pipelineData.length,
+        mileageRange: `0 - ${this.maxMileage.toFixed(3)} km`,
+        elevationRange: `${minElevation.toFixed(1)} - ${maxElevation.toFixed(1)} m`,
+        elevationSpan: `${elevationRange.toFixed(1)} m`,
+        hasNegativeElevation: minElevation < 0,
+        hasPositiveElevation: maxElevation > 0,
+        pressureRange: `${Math.min(...pressureData.map(p => parseFloat(p[1]))).toFixed(3)} - ${Math.max(...pressureData.map(p => parseFloat(p[1]))).toFixed(3)} MPa`,
+        temperatureRange: `${Math.min(...temperatureData.map(t => parseFloat(t[1]))).toFixed(1)} - ${Math.max(...temperatureData.map(t => parseFloat(t[1]))).toFixed(1)} ℃`
+      })
+
+      const option = {
+        title: {
+          text: `管线沿线参数分布图 (显示${this.pipelineData.length}个采样点)`,
+          subtext: `里程: 0 - ${this.maxMileage.toFixed(3)} km | 高程: ${minElevation.toFixed(1)} - ${maxElevation.toFixed(1)} m | 数据源: ${this.dataSource} | 采样比例: 1:${this.samplingInterval}`,
+          left: 'center',
+          textStyle: {
+            color: '#ffffff',
+            fontSize: 16,
+            fontWeight: 'bold'
+          },
+          subtextStyle: {
+            color: this.dataSource.includes('数据库') ? '#4CAF50' : 
+                   this.dataSource.includes('模拟') ? '#FF9800' : '#cccccc',
+            fontSize: 12
+          },
+          top: 10
+        },
         tooltip: {
           trigger: 'axis',
           axisPointer: {
             type: 'cross',
             label: {
-              backgroundColor: '#2a2a2a',
-              color: '#fff',
-              fontSize: 12
+              backgroundColor: '#6a7985'
             }
           },
-          backgroundColor: '#fff',
-          borderColor: '#e0e0e0',
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          borderColor: '#1a9bfc',
           borderWidth: 1,
-          borderRadius: 8,
-          shadowColor: 'rgba(0,0,0,0.15)',
-          shadowBlur: 8,
           textStyle: {
-            color: '#222',
-            fontSize: 14
+            color: '#fff'
           },
-          extraCssText: 'box-shadow: 0 2px 12px rgba(0,0,0,0.15);',
-          formatter: (params) => {
-            const distance = params[0].data[0].toFixed(1)
-            let html = `<div style="font-weight:bold;margin-bottom:2px;">距离: ${distance} km</div>`;
-            const showNames = ['沿线压力', '沿线高程', '沿线温度'];
-            params.forEach(p => {
-              if (!showNames.includes(p.seriesName)) return;
-              let unit = '';
-              if (p.seriesName.includes('压力')) unit = 'MPa';
-              else if (p.seriesName.includes('温度')) unit = '℃';
-              else if (p.seriesName.includes('高程')) unit = 'm';
-              html += `<div style="margin:2px 0;">${p.marker}<span style='color:#222;'>${p.seriesName}:</span> <span style='font-weight:bold;'>${p.data[1]}</span> <span style='color:#888;'>${unit}</span></div>`;
-            });
-            return html;
+          formatter: function(params) {
+            const mileage = params[0].data[0]
+            let html = `<div style="font-weight:bold;margin-bottom:5px;">里程: ${mileage.toFixed(3)} km</div>`
+            
+            params.forEach(param => {
+              const value = param.data[1]
+              const unit = param.seriesName.includes('压力') ? ' MPa' : 
+                          param.seriesName.includes('温度') ? ' ℃' : ' m'
+              
+              // 为负值高程添加特殊样式
+              let valueStyle = ''
+              if (param.seriesName.includes('高程') && parseFloat(value) < 0) {
+                valueStyle = 'color: #ff6b6b; font-weight: bold;'
+              }
+              
+              html += `<div style="margin:3px 0;">
+                        ${param.marker} ${param.seriesName}: 
+                        <span style="font-weight:bold; ${valueStyle}">${value}${unit}</span>
+                       </div>`
+            })
+            return html
           }
         },
-        legend: [{
-          x: 'left',
-          top: '2%',
-          left: '60%',
-          selectedMode: 'multiple',
-          icon: 'roundRect',
-          itemHeight: 3,
-          data: [
-            { name: '沿线压力', itemStyle: { color: '#ff6b6b' } },
-            { name: '沿线高程', itemStyle: { color: '#3399ff' } },
-            { name: '沿线温度', itemStyle: { color: '#ffd166' } }
-          ],
+        legend: {
+          data: ['沿线压力', '沿线温度', '沿线高程'],
+          top: 50,
           textStyle: {
-            color: 'white',
-            fontSize: 14,
-            fontWeight: 'bold'
+            color: '#ffffff',
+            fontSize: 12
           },
-          inactiveColor: 'rgba(255,255,255,0.3)',
-          selected: {
-            '沿线压力': true,
-            '沿线高程': true,
-            '沿线温度': true
+          itemWidth: 20,
+          itemHeight: 12
+        },
+        dataZoom: [
+          {
+            type: 'slider',
+            show: true,
+            xAxisIndex: [0],
+            start: 0,
+            end: 100,
+            bottom: 60,
+            height: 20,
+            handleIcon: 'M10.7,11.9v-1.3H9.3v1.3c-4.9,0.3-8.8,4.4-8.8,9.4c0,5,3.9,9.1,8.8,9.4v1.3h1.3v-1.3c4.9-0.3,8.8-4.4,8.8-9.4C19.5,16.3,15.6,12.2,10.7,11.9z M13.3,24.4H6.7V23.1h6.6V24.4z M13.3,19.6H6.7v-1.2h6.6V19.6z',
+            handleSize: '80%',
+            handleStyle: {
+              color: '#1a9bfc',
+              shadowBlur: 3,
+              shadowColor: 'rgba(0, 0, 0, 0.6)',
+              shadowOffsetX: 2,
+              shadowOffsetY: 2
+            },
+            textStyle: {
+              color: '#ffffff',
+              fontSize: 11
+            },
+            borderColor: 'rgba(26, 155, 252, 0.5)',
+            fillerColor: 'rgba(26, 155, 252, 0.2)',
+            backgroundColor: 'rgba(47, 69, 84, 0.8)'
+          },
+          {
+            type: 'inside',
+            xAxisIndex: [0],
+            start: 0,
+            end: 100
           }
-        }],
+        ],
         grid: {
-          left: '10%',
-          right: '3%',
-          bottom: '10%',
-          top: '8%',
+          left: '8%',
+          right: '8%',
+          bottom: '20%',
+          top: '25%',
           containLabel: true
         },
         xAxis: {
           type: 'value',
-          name: '距离 (km)',
+          name: '里程 (km)',
+          nameLocation: 'middle',
+          nameGap: 30,
           nameTextStyle: {
-            color: 'white',
-            fontSize: 12,
-            padding: [10, 0, 0, 0]
+            color: '#ffffff',
+            fontSize: 12
           },
           min: 0,
-          max: this.distance,
-          splitNumber: 5,
+          max: this.maxMileage,
           axisLabel: {
-            color: 'rgba(255,255,255,0.8)',
-            fontSize: 12,
+            color: '#ffffff',
+            fontSize: 11,
             formatter: '{value} km'
           },
           axisLine: {
-            show: true,
             lineStyle: {
               color: 'rgba(255,255,255,0.3)'
             }
           },
           axisTick: {
-            show: true,
             lineStyle: {
               color: 'rgba(255,255,255,0.3)'
             }
           },
           splitLine: {
-            show: true,
             lineStyle: {
               color: 'rgba(255,255,255,0.1)',
               type: 'dashed'
@@ -549,279 +365,209 @@ export default {
         },
         yAxis: [
           {
-            splitLine: {
-              show: true,
-              lineStyle: {
-                color: 'rgba(255,255,255,0.1)',
-                type: 'dashed'
-              }
-            },
-            name: '(MPa)',
-            nameTextStyle: {
-              color: 'white',
-              fontSize: 12,
-              padding: [0, 0, 0, 20]
-            },
             type: 'value',
-            min: 1.5,
-            max: 2.5,
+            name: '压力 (MPa)',
+            nameTextStyle: {
+              color: '#ff6b6b',
+              fontSize: 11
+            },
+            position: 'left',
             axisLabel: {
-              color: 'rgba(255,255,255,0.8)',
-              fontSize: 12
+              color: '#ff6b6b',
+              fontSize: 10,
+              formatter: '{value}'
             },
             axisLine: {
-              show: true,
               lineStyle: {
-                color: 'rgba(255,255,255,0.3)'
+                color: '#ff6b6b'
               }
             },
             axisTick: {
-              show: true,
               lineStyle: {
-                color: 'rgba(255,255,255,0.3)'
-              }
-            }
-          },
-          {
-            splitLine: {
-              show: true,
-              lineStyle: {
-                color: 'rgba(255,255,255,0.1)',
-                type: 'dashed'
+                color: '#ff6b6b'
               }
             },
-            name: '℃',
-            nameTextStyle: {
-              color: 'white',
-              fontSize: 12,
-              padding: [0, 0, 0, 20]
-            },
-            type: 'value',
-            min: 0,
-            max: 1000,
-            axisLabel: {
-              color: 'rgba(255,255,255,0.8)',
-              fontSize: 12
-            },
-            axisLine: {
-              show: true,
-              lineStyle: {
-                color: 'rgba(255,255,255,0.3)'
-              }
-            },
-            axisTick: {
-              show: true,
-              lineStyle: {
-                color: 'rgba(255,255,255,0.3)'
-              }
-            }
-          },
-          {
-            type: 'value',
-            show: false,
-            max: 300,
-            min: -100,
-            splitNumber: 11,
             splitLine: {
               show: false
             }
           },
           {
             type: 'value',
-            show: false,
-            max: 3000,
-            min: -100,
-            splitNumber: 11,
+            name: '温度 (℃)',
+            nameTextStyle: {
+              color: '#ffd166',
+              fontSize: 11
+            },
+            position: 'right',
+            offset: 0,
+            axisLabel: {
+              color: '#ffd166',
+              fontSize: 10,
+              formatter: '{value}'
+            },
+            axisLine: {
+              lineStyle: {
+                color: '#ffd166'
+              }
+            },
+            axisTick: {
+              lineStyle: {
+                color: '#ffd166'
+              }
+            },
             splitLine: {
               show: false
+            }
+          },
+          {
+            type: 'value',
+            name: '高程 (m)',
+            nameTextStyle: {
+              color: '#3399ff',
+              fontSize: 11
+            },
+            position: 'right',
+            offset: 60,
+            min: function(value) {
+              // 动态计算最小值，确保负值也能正确显示
+              return Math.floor(value.min - Math.abs(value.min) * 0.1)
+            },
+            max: function(value) {
+              // 动态计算最大值，添加适当的上边距
+              return Math.ceil(value.max + Math.abs(value.max) * 0.1)
+            },
+            axisLabel: {
+              color: '#3399ff',
+              fontSize: 10,
+              formatter: '{value} m'
+            },
+            axisLine: {
+              lineStyle: {
+                color: '#3399ff'
+              }
+            },
+            axisTick: {
+              lineStyle: {
+                color: '#3399ff'
+              }
+            },
+            splitLine: {
+              lineStyle: {
+                color: 'rgba(51,153,255,0.2)',
+                type: 'dashed'
+              }
             }
           }
         ],
         series: [
           {
             name: '沿线压力',
-            data: this.pressure.map((val, index) => [index * (this.distance / this.numPoints), val]),
             type: 'line',
-            smooth: true,
-            symbol: 'none',
+            yAxisIndex: 0,
+            data: pressureData,
+            symbol: 'circle',
+            symbolSize: 4,
             lineStyle: {
               color: '#ff6b6b',
-              width: 1.5,
-              shadowColor: 'rgba(255,107,107,0.3)',
-              shadowBlur: 10,
-              shadowOffsetY: 5
+              width: 2
             },
-            yAxisIndex: 0
-          },
-          {
-            name: '沿线高程',
-            data: this.elevation.map((val, index) => [index * (this.distance / this.numPoints), val]),
-            type: 'line',
-            z: 3,
-            smooth: true,
-            symbol: 'circle',    // 显示数据点
-            symbolSize: 8,       // 数据点大小
-            lineStyle: {
-              width: 2,
-              color: '#3399ff'
-            },
-            itemStyle: {         // 数据点样式
-              color: '#3399ff',
-              borderWidth: 2,
+            itemStyle: {
+              color: '#ff6b6b',
+              borderWidth: 1,
               borderColor: '#fff'
             },
-            emphasis: {          // 鼠标悬停效果
-              scale: true,
+            smooth: true,
+            emphasis: {
+              focus: 'series',
               itemStyle: {
-                symbolSize: 10,
-                borderWidth: 3
+                symbolSize: 6
               }
-            },
-            areaStyle: {
-              opacity: 0.8,
-              color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                {
-                  offset: 0,
-                  color: 'rgba(51,153,255,0.8)'
-                },
-                {
-                  offset: 1,
-                  color: 'rgba(51,153,255,0.8)'
-                }
-              ])
-            },
-            yAxisIndex: 3
+            }
           },
           {
             name: '沿线温度',
-            data: this.temperature.map((val, index) => [index * (this.distance / this.numPoints), val]),
             type: 'line',
-            smooth: true,
+            yAxisIndex: 1,
+            data: temperatureData,
+            symbol: 'triangle',
+            symbolSize: 4,
             lineStyle: {
               color: '#ffd166',
-              width: 1.5,
-              shadowColor: 'rgba(255,209,102,0.3)',
-              shadowBlur: 10,
-              shadowOffsetY: 5
+              width: 2
             },
-            symbol: 'none',
-            yAxisIndex: 2,
+            itemStyle: {
+              color: '#ffd166',
+              borderWidth: 1,
+              borderColor: '#fff'
+            },
+            smooth: true,
+            emphasis: {
+              focus: 'series',
+              itemStyle: {
+                symbolSize: 6
+              }
+            }
           },
-          ...this.pressureColumns // 添加所有压力液柱
-        ]
+          {
+            name: '沿线高程',
+            type: 'line',
+            yAxisIndex: 2,
+            data: elevationData,
+            symbol: 'diamond',
+            symbolSize: 4,
+            lineStyle: {
+              color: '#3399ff',
+              width: 3
+            },
+            itemStyle: {
+              color: '#3399ff',
+              borderWidth: 1,
+              borderColor: '#fff'
+            },
+            smooth: true,
+            emphasis: {
+              focus: 'series',
+              itemStyle: {
+                symbolSize: 6
+              }
+            }
+          }
+        ],
+        backgroundColor: 'transparent'
       }
-      if (this.charts) {
-        this.charts.setOption(options)
+
+      this.chart.setOption(option, true)
+      
+      // 响应式调整
+      if (!this.resizeHandler) {
+        this.resizeHandler = () => {
+          if (this.chart) {
+            this.chart.resize()
+          }
+        }
+        window.addEventListener('resize', this.resizeHandler)
+      }
+    },
+
+    refreshData() {
+      this.fetchPipelineData()
+    },
+
+    // 动态调整抽样间隔
+    setSamplingInterval(interval) {
+      if (interval > 0) {
+        this.samplingInterval = interval
+        console.log(`📊 抽样间隔已调整为: 1:${interval}`)
+        this.refreshData() // 重新获取和处理数据
       }
     }
   }
 }
 </script>
 
-<style>
-.dark-dialog {
-  background-color: #0f1c3c !important;
-  border-radius: 8px !important;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5) !important;
-}
-
-.large-dialog {
-  min-width: 1200px;
-}
-
-.large-dialog .el-dialog__body {
-  padding: 30px 40px;
-}
-
-.large-dialog .el-dialog__header {
-  padding: 20px 40px;
-  background: rgba(0, 0, 0, 0.2);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.dark-dialog .el-dialog__title {
-  color: #fff !important;
-  font-size: 20px !important;
-  font-weight: 600 !important;
-}
-
-.dark-dialog .el-dialog__body {
-  color: #fff !important;
-}
-
-.dark-dialog .el-dialog__headerbtn {
-  top: 23px;
-  right: 40px;
-}
-
-.dark-dialog .el-dialog__headerbtn .el-dialog__close {
-  color: rgba(255, 255, 255, 0.8) !important;
-  font-size: 20px !important;
-  transition: all 0.3s ease;
-}
-
-.dark-dialog .el-dialog__headerbtn .el-dialog__close:hover {
-  color: #fff !important;
-  transform: scale(1.1);
-}
-
-.trend-container {
-  padding: 0;
-}
-
-.time-selector {
-  margin-bottom: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0, 0, 0, 0.15);
-  padding: 20px;
-  border-radius: 6px;
-}
-
-.selector-group {
-  display: flex;
-  align-items: center;
-  background: rgba(0, 0, 0, 0.2);
-  padding: 10px 20px;
-  border-radius: 4px;
-}
-
-.el-radio-button__inner {
-  background-color: rgba(26, 155, 252, 0.1) !important;
-  border-color: rgba(26, 155, 252, 0.2) !important;
-  color: #fff !important;
-  transition: all 0.3s ease !important;
-}
-
-.el-radio-button__orig-radio:checked+.el-radio-button__inner {
-  background-color: #1a9bfc !important;
-  border-color: #1a9bfc !important;
-  box-shadow: -1px 0 0 0 #1a9bfc !important;
-}
-
-.el-radio-button__inner:hover {
-  background-color: rgba(26, 155, 252, 0.2) !important;
-}
-
-.el-date-editor {
-  background-color: rgba(0, 0, 0, 0.2) !important;
-  border-radius: 4px;
-}
-
-.el-input__inner {
-  background-color: transparent !important;
-  border-color: rgba(26, 155, 252, 0.2) !important;
-  color: #fff !important;
-  transition: all 0.3s ease;
-}
-
-.el-input__inner:hover,
-.el-input__inner:focus {
-  border-color: #1a9bfc !important;
-}
-
-.el-date-editor .el-input__icon {
-  color: rgba(255, 255, 255, 0.8) !important;
+<style scoped>
+.chart-container {
+  position: relative;
+  background: transparent;
 }
 </style>

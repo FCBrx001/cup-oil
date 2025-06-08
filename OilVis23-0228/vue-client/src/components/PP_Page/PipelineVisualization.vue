@@ -173,13 +173,13 @@ export default {
         this.ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            console.log('收到管段监测数据:', data);
+            // console.log('收到管段监测数据:', data);
             
             // 更新实时数据
             this.realtimeData = data;
             
           } catch (error) {
-            console.error('解析管段监测数据失败:', error);
+            // console.error('解析管段监测数据失败:', error);
           }
         };
 

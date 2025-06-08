@@ -175,7 +175,7 @@ export default {
   },
   mounted() {
     // 这里可以添加 WebSocket 连接的逻辑
-    this.ws = new WebSocket('ws://127.0.0.1:3005');
+    // this.ws = new WebSocket('ws://127.0.0.1:3005');
     // this.ws.onmessage = (event) => {
     //   console.log(event.data);
     // };

@@ -1,3 +1,4 @@
+// 正常验证token，如果token错误，返回401
 const jwt = require('jsonwebtoken');
 
 function verifyToken(req, res, next) {
@@ -20,3 +21,24 @@ function verifyToken(req, res, next) {
 
 
 module.exports = verifyToken;
+
+
+// //跳过验证
+// const jwt = require('jsonwebtoken');
+
+// function verifyToken(req, res, next) {
+//   // 跳过验证，直接允许所有请求通过
+//   console.log('跳过token验证，允许访问:', req.path);
+  
+//   // 添加一个默认用户，以防后续代码依赖用户信息
+//   req.user = {
+//     username: 'admin',
+//     role: 'admin'
+//   };
+  
+//   next();
+// }
+
+// module.exports = verifyToken;
+
+

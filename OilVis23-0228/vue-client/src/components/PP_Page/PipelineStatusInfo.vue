@@ -354,7 +354,7 @@ export default {
         this.ws.onmessage = (event) => {
           try {
             const data = JSON.parse(event.data);
-            console.log('收到管段状态数据:', data);
+            // console.log('收到管段状态数据:', data);
             
             // 保存之前的状态
             const previousState = this.realtimeData ? this.realtimeData.state : null;

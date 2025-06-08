@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试新图表组件</title>
+    <style>
+        body {
+            background-color: #0f1c3c;
+            color: #fff;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .chart-wrapper {
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .log-section {
+            background: rgba(0,0,0,0.5);
+            padding: 15px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        button {
+            background: #1a9bfc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0d7bc7;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .status.success { background: #52c41a; }
+        .status.error { background: #ff4d4f; }
+        .status.warning { background: #faad14; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>管线参数图表测试</h1>
+            <p>测试新重写的test_chart.vue组件与elevationDataGet.js后端的连接</p>
+        </div>
+
+        <div class="test-section">
+            <h3>连接测试 <span id="connectionStatus" class="status">检测中...</span></h3>
+            <button onclick="testConnection()">测试连接</button>
+            <button onclick="testElevationAPI()">测试高程API</button>
+            <button onclick="testDynamicData()">测试动态数据</button>
+            <button onclick="clearLog()">清除日志</button>
+            
+            <div class="log-section" id="logSection">
+                <div>等待测试...</div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>图表预览</h3>
+            <div class="chart-wrapper">
+                <div id="testChart" style="width: 100%; height: 400px;"></div>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>数据详情</h3>
+            <div id="dataDetails" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 6px;">
+                <pre id="dataContent">暂无数据</pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"></script>
+    <script>
+        let chart = null;
+        let logElement = document.getElementById('logSection');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'error' ? '#ff4d4f' : 
+                         type === 'success' ? '#52c41a' : 
+                         type === 'warning' ? '#faad14' : '#fff';
+            
+            logElement.innerHTML += `<div style="color: ${color};">[${timestamp}] ${message}</div>`;
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+
+        function clearLog() {
+            logElement.innerHTML = '<div>日志已清除</div>';
+        }
+
+        function updateStatus(status, type) {
+            const statusElement = document.getElementById('connectionStatus');
+            statusElement.textContent = status;
+            statusElement.className = `status ${type}`;
+        }
+
+        async function testConnection() {
+            log('开始测试基础连接...');
+            try {
+                const response = await fetch('/api/elevation/elevation-data');
+                if (response.ok) {
+                    log('✅ 基础连接测试成功', 'success');
+                    updateStatus('连接正常', 'success');
+                    return true;
+                } else {
+                    log(`❌ 基础连接失败: ${response.status}`, 'error');
+                    updateStatus('连接失败', 'error');
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ 连接错误: ${error.message}`, 'error');
+                updateStatus('连接错误', 'error');
+                return false;
+            }
+        }
+
+        async function testElevationAPI() {
+            log('开始测试高程数据API...');
+            
+            try {
+                const response = await fetch('/api/elevation/elevation-data');
+                const data = await response.json();
+                
+                log(`API响应状态: ${response.status}`, 'info');
+                log(`数据成功标志: ${data.success}`, data.success ? 'success' : 'warning');
+                log(`数据点数量: ${data.count || data.data?.length || 0}`, 'info');
+                log(`最大距离: ${data.maxDistance} km`, 'info');
+                
+                if (data.message) {
+                    log(`消息: ${data.message}`, 'warning');
+                }
+
+                // 显示数据详情
+                document.getElementById('dataContent').textContent = JSON.stringify(data, null, 2);
+                
+                // 如果有数据，绘制图表
+                if (data.data && data.data.length > 0) {
+                    drawChart(data.data, data.maxDistance);
+                    log('✅ 图表绘制完成', 'success');
+                } else {
+                    log('⚠️ 无数据可绘制', 'warning');
+                }
+                
+            } catch (error) {
+                log(`❌ API测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        async function testDynamicData() {
+            log('开始测试动态数据点...');
+            
+            const testCounts = [5, 10, 15, 20];
+            
+            for (const count of testCounts) {
+                try {
+                    const response = await fetch(`/api/elevation/test-elevation/${count}`);
+                    const data = await response.json();
+                    
+                    log(`${count}个数据点测试: ${data.success ? '成功' : '失败'}`, data.success ? 'success' : 'error');
+                    log(`  实际数据点: ${data.count}`, 'info');
+                    
+                } catch (error) {
+                    log(`${count}个数据点测试失败: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        function drawChart(pipelineData, maxMileage) {
+            const chartDom = document.getElementById('testChart');
+            if (chart) {
+                chart.dispose();
+            }
+            chart = echarts.init(chartDom);
+
+            // 生成压力数据
+            const pressureData = pipelineData.map(item => {
+                const basePressure = 2.0;
+                const elevationEffect = -item.高程 * 0.0001;
+                const distanceEffect = -(item.里程 / maxMileage) * 0.05;
+                const randomVariation = (Math.random() - 0.5) * 0.02;
+                const pressure = basePressure + elevationEffect + distanceEffect + randomVariation;
+                return [item.里程, Math.max(1.95, Math.min(2.05, pressure)).toFixed(3)];
+            });
+
+            // 生成温度数据
+            const temperatureData = pipelineData.map(item => {
+                const baseTemp = 45;
+                const heatLoss = -(item.里程 / maxMileage) * 3;
+                const elevationEffect = -item.高程 * 0.002;
+                const randomVariation = (Math.random() - 0.5) * 1.0;
+                const temperature = baseTemp + heatLoss + elevationEffect + randomVariation;
+                return [item.里程, Math.max(40, Math.min(50, temperature)).toFixed(1)];
+            });
+
+            // 生成高程数据
+            const elevationData = pipelineData.map(item => [item.里程, item.高程]);
+
+            const option = {
+                title: {
+                    text: '管线沿线参数分布图 (测试版)',
+                    left: 'center',
+                    textStyle: {
+                        color: '#ffffff',
+                        fontSize: 16,
+                        fontWeight: 'bold'
+                    },
+                    top: 10
+                },
+                tooltip: {
+                    trigger: 'axis',
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    borderColor: '#1a9bfc',
+                    borderWidth: 1,
+                    textStyle: { color: '#fff' }
+                },
+                legend: {
+                    data: ['沿线压力', '沿线温度', '沿线高程'],
+                    top: 40,
+                    textStyle: { color: '#ffffff', fontSize: 12 }
+                },
+                grid: {
+                    left: '8%', right: '8%', bottom: '15%', top: '20%', containLabel: true
+                },
+                xAxis: {
+                    type: 'value',
+                    name: '里程 (km)',
+                    nameTextStyle: { color: '#ffffff', fontSize: 12 },
+                    min: 0, max: maxMileage,
+                    axisLabel: { color: '#ffffff', formatter: '{value} km' },
+                    axisLine: { lineStyle: { color: 'rgba(255,255,255,0.3)' } },
+                    splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)', type: 'dashed' } }
+                },
+                yAxis: [
+                    {
+                        type: 'value', name: '压力 (MPa)', position: 'left',
+                        nameTextStyle: { color: '#ff6b6b' },
+                        axisLabel: { color: '#ff6b6b' },
+                        axisLine: { lineStyle: { color: '#ff6b6b' } }
+                    },
+                    {
+                        type: 'value', name: '温度 (℃)', position: 'right',
+                        nameTextStyle: { color: '#ffd166' },
+                        axisLabel: { color: '#ffd166' },
+                        axisLine: { lineStyle: { color: '#ffd166' } }
+                    },
+                    {
+                        type: 'value', name: '高程 (m)', position: 'right', offset: 60,
+                        nameTextStyle: { color: '#3399ff' },
+                        axisLabel: { color: '#3399ff' },
+                        axisLine: { lineStyle: { color: '#3399ff' } },
+                        splitLine: { lineStyle: { color: 'rgba(255,255,255,0.1)', type: 'dashed' } }
+                    }
+                ],
+                series: [
+                    {
+                        name: '沿线压力', type: 'line', yAxisIndex: 0, data: pressureData,
+                        lineStyle: { color: '#ff6b6b', width: 2 },
+                        itemStyle: { color: '#ff6b6b' }, smooth: true
+                    },
+                    {
+                        name: '沿线温度', type: 'line', yAxisIndex: 1, data: temperatureData,
+                        lineStyle: { color: '#ffd166', width: 2 },
+                        itemStyle: { color: '#ffd166' }, smooth: true
+                    },
+                    {
+                        name: '沿线高程', type: 'line', yAxisIndex: 2, data: elevationData,
+                        lineStyle: { color: '#3399ff', width: 2 },
+                        itemStyle: { color: '#3399ff' }, smooth: true
+                    }
+                ],
+                backgroundColor: 'transparent'
+            };
+
+            chart.setOption(option);
+        }
+
+        // 页面加载时自动测试连接
+        window.onload = function() {
+            log('页面加载完成，开始自动测试...', 'info');
+            setTimeout(testConnection, 1000);
+        };
+    </script>
+</body>
+</html> 

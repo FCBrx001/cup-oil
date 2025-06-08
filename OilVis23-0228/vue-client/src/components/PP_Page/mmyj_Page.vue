@@ -53,7 +53,7 @@
             <span class="wgrytj_bt" style="font-size:1.2rem;"></span>
             <div style="height: 45%;">
               <div class="data-title" style="width:13rem;"></div>
-              <TestChart22></TestChart22>
+              <TestChart></TestChart>
             </div>
           </div>
         </div>
@@ -130,7 +130,7 @@
 <script>
 import * as echarts from 'echarts';
 import Scatter_plot from '../PP_Page/HelloWorld.vue'
-import TestChart22 from '../../views/test_chart.vue';
+import TestChart from '../../views/test_chart.vue';
 
 // Import modular components
 import PipelineStatusInfo from './PipelineStatusInfo.vue';
@@ -143,7 +143,7 @@ export default {
   name: 'mmyj_Page',
   components: {
     'Scatterplot': Scatter_plot,
-    'TestChart22': TestChart22,
+    'TestChart': TestChart,
     PipelineStatusInfo,
     PipelineVisualization,
     PredictionChart,
