@@ -62,6 +62,39 @@ class HuangpuDongguan_cube extends vis_cube{
             });
         });
     }
+
+    // 获取最近30条记录的特定字段数据
+    getLast30Records() {
+        return new Promise((resolve, reject) => {
+            if (!this.newClient) {
+                reject(new Error('数据库连接不可用'));
+                return;
+            }
+            
+            let db = this.newClient.db(this.dbName);
+            const fields = {
+                'STN10_00_PI019A': 1,  // 黄埔出站压力
+                'STN11_00_PI001': 1,   // 东莞进站压力
+                'STN10_00_TI002': 1,   // 黄埔出站温度
+                'STN11_00_TI001': 1,   // 东莞进站温度
+                'time': 1,
+                '_id': 1
+            };
+            
+            db.collection(this.collectionName)
+                .find({}, { projection: fields })
+                .sort('_id', -1)
+                .limit(30)
+                .toArray(function(err, result) {
+                    if (err) {
+                        console.error("获取历史数据错误：", err);
+                        reject(err);
+                    } else {
+                        resolve(result);
+                    }
+                });
+        });
+    }
 }
 
 var hpDg_cube = new HuangpuDongguan_cube()
@@ -149,17 +182,21 @@ setInterval(() => {
                 STN11_00_ZLC011: 'ON',
                 STN11_00_ZLO011: 'OFF',
                 season_info: '霜降',
-                state: 'Shutdown'
+                state: 'Shutdown',
+                historicalData: [] // 添加空的历史数据数组
             };
             
             conn.sendText(JSON.stringify(mockData));
             return;
         }
         
-        hpDg_cube.vissl_findlastone().then(result => {
-            if(result && result.length > 0) {
+        Promise.all([
+            hpDg_cube.vissl_findlastone(),
+            hpDg_cube.getLast30Records()
+        ]).then(([currentData, historicalData]) => {
+            if(currentData && currentData.length > 0) {
                 var data = {}
-                var latestData = result[0]
+                var latestData = currentData[0]
                 
                 // 提取需要的字段
                 targetFields.forEach(field => {
@@ -172,6 +209,15 @@ setInterval(() => {
                 if(latestData._id) {
                     data._id = latestData._id
                 }
+
+                // 添加历史数据
+                data.historicalData = historicalData.map(record => ({
+                    time: record.time,
+                    STN10_00_PI019A: record.STN10_00_PI019A,  // 黄埔出站压力
+                    STN11_00_PI001: record.STN11_00_PI001,   // 东莞进站压力
+                    STN10_00_TI002: record.STN10_00_TI002,   // 黄埔出站温度
+                    STN11_00_TI001: record.STN11_00_TI001    // 东莞进站温度
+                }));
                 
                 conn.sendText(JSON.stringify(data))
             } else {
@@ -183,7 +229,8 @@ setInterval(() => {
             var mockData = {
                 _id: "错误备选数据",
                 time: Math.floor(Date.now() / 1000),
-                error: "数据库查询失败"
+                error: "数据库查询失败",
+                historicalData: []
             };
             conn.sendText(JSON.stringify(mockData));
         })

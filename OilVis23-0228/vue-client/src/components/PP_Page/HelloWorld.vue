@@ -131,7 +131,7 @@
       </div>
       
       <!-- 温度对物性影响预测部分 -->
-      <div class="prediction-section">
+      <!-- <div class="prediction-section">
         <h3>温度对物性影响预测</h3>
         <div class="tabs-container">
           <el-tabs v-model="activePredictionTab" @tab-click="handleTabClick">
@@ -140,7 +140,7 @@
           </el-tabs>
           <div id="predictionChart" ref="predictionChart" class="prediction-chart"></div>
         </div>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>

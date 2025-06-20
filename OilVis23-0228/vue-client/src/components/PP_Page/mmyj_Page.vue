@@ -29,6 +29,7 @@
         <!-- 管段沿线监测 -->
         <pipeline-visualization 
           :pipeline-id="selectedPipeline" 
+          :selected-valves="selectedValves"
           @valve-clicked="handleValveClick" />
           
         <div class="data-box1 left_tb box1-backlu fl" style="height: 745px;margin-top: 25px;">
@@ -46,8 +47,9 @@
             <div style="width: 100%;height: 55%;">
               <prediction-chart 
                 :pipeline-id="selectedPipeline"
-                :selected-valve-info="selectedValve"
-                @valve-reset="selectedValve = null"
+                :selected-valves="selectedValves"
+                @remove-valve="handleRemoveValve"
+                @clear-all-valves="handleClearAllValves"
                 ref="predictionChart" />
             </div>
             <span class="wgrytj_bt" style="font-size:1.2rem;"></span>
@@ -70,8 +72,17 @@
             <span style="font-size:1.5rem;width:12rem;">停输压降预警</span>
             <b class="data-title-right fr">]</b>
           </div>
-          <div class="box1-backlu" style="height: 22%;width: 100%;">
-            <div class="leakage-monitor">
+          
+          <!-- 偷漏油监测 -->
+          <div class="warning-block" style="height: 22%;">
+            <div class="block-title">
+              <span class="title-text">偷漏油监测</span>
+              <div class="status-info">
+                <span class="status-dot normal"></span>
+                <span class="status-text">系统运行正常</span>
+              </div>
+            </div>
+            <div class="block-content">
               <div class="monitor-grid">
                 <div class="monitor-item">
                   <span class="label">监测点</span>
@@ -98,28 +109,37 @@
                   <span class="value">2024-02-28 14:30</span>
                 </div>
               </div>
-              <div class="monitor-status" style="height: 30px;">
-                <div class="status-indicator">
-                  <span class="dot normal"></span>
-                  <span class="text">系统运行正常</span>
-                </div>
-                <div class="status-time">
-                  上次检测：2分钟前
-                </div>
-              </div>
             </div>
           </div>
           
-          <div style="height: 22%;width: 100%;">
-            <!-- 高点汽化风险监测 -->
-            <vaporization-warning 
-              ref="vaporizationWarning"
-              @valve-selected="handleValveSelected" />
+          <!-- 高点汽化风险监测 -->
+          <div class="warning-block" style="height: 28%; margin-bottom: 10px;">
+            <div class="block-title">
+              <span class="title-text">高点汽化风险监测</span>
+              <div class="status-info">
+                <span class="status-dot warning"></span>
+                <span class="status-text">存在风险点</span>
+              </div>
+            </div>
+            <div class="block-content" style="overflow: auto;">
+              <vaporization-warning 
+                ref="vaporizationWarning"
+                @valve-selected="handleValveSelected" />
+            </div>
           </div>
           
-          <div style="height: 56%;width: 100%;">
-            <!-- 停输保压方案 -->
-            <pressure-maintenance-plan />
+          <!-- 停输保压方案 -->
+          <div class="warning-block" style="height: 45%;">
+            <div class="block-title">
+              <span class="title-text">停输保压方案</span>
+              <div class="status-info">
+                <span class="status-dot normal"></span>
+                <span class="status-text">方案执行中</span>
+              </div>
+            </div>
+            <div class="block-content">
+              <pressure-maintenance-plan />
+            </div>
           </div>
         </div>
       </div>
@@ -155,6 +175,8 @@ export default {
       selectedPipeline: 'pipeline1',
       selectedValve: null,
       selectedValveInfo: null,
+      selectedValves: [],
+      maxValveSelection: 4,
       configDialogVisible: false,
       selectedPlan: 'plan1',
       planParams: {
@@ -178,12 +200,47 @@ export default {
       // Update charts that depend on pipeline
     },
     handleValveClick(data) {
-      // 更新当前选中的阀室信息
-      this.selectedValveInfo = data;
-      // 同时更新selectedValve，传递给PredictionChart组件
-      this.selectedValve = data;
+      // 检查是否已经选中了这个站点/阀室
+      const existingIndex = this.selectedValves.findIndex(valve => 
+        valve.valveName === data.valveName
+      );
       
-      console.log('阀室被点击：', data.valveName);
+      if (existingIndex !== -1) {
+        // 如果已选中，则取消选择
+        this.selectedValves.splice(existingIndex, 1);
+        this.$message({
+          type: 'info',
+          message: `已取消选择 ${data.valveName}`
+        });
+      } else {
+        // 如果未选中，检查是否超过最大选择数
+        if (this.selectedValves.length >= this.maxValveSelection) {
+          this.$message({
+            type: 'warning',
+            message: `最多只能选择 ${this.maxValveSelection} 个站点进行对比`
+          });
+          return;
+        }
+        
+        // 添加到选中列表
+        const newValve = {
+          valveId: `${data.stationType}_${data.valveIndex || this.selectedValves.length}`,
+          valveName: data.valveName,
+          valveIndex: data.valveIndex || 0,
+          stationType: data.stationType || 'valve',
+          stationData: data.stationData || {},
+          x: data.x,
+          y: data.y
+        };
+        
+        this.selectedValves.push(newValve);
+        this.$message({
+          type: 'success',
+          message: `已选择 ${data.valveName} 进行对比分析`
+        });
+      }
+      
+      console.log('当前选中的站点:', this.selectedValves);
     },
     handleValveSelected(valveData) {
       // Handle valve selection from vaporization warning component
@@ -206,6 +263,23 @@ export default {
         valveName: valveName,
         valveIndex: parseInt(valveName.replace(/[^0-9]/g, '')) || 0
       };
+    },
+    handleRemoveValve(valveId) {
+      const index = this.selectedValves.findIndex(valve => valve.valveId === valveId);
+      if (index !== -1) {
+        const removedValve = this.selectedValves.splice(index, 1)[0];
+        this.$message({
+          type: 'info',
+          message: `已移除 ${removedValve.valveName}`
+        });
+      }
+    },
+    handleClearAllValves() {
+      this.selectedValves = [];
+      this.$message({
+        type: 'info',
+        message: '已清空所有选择的站点'
+      });
     },
   }
 }
@@ -293,5 +367,136 @@ export default {
   color: #66dffb;
   display: block;
   margin-bottom: 10px;
+}
+
+.warning-block {
+  background: rgba(0, 21, 41, 0.8);
+  border: 1px solid rgba(24, 144, 255, 0.3);
+  border-radius: 4px;
+  margin: 5px;
+  height: calc(100% - 10px);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  position: relative;
+  z-index: 1;
+}
+
+.warning-block:nth-child(3) {
+  margin-bottom: 10px;
+  z-index: 2;
+}
+
+.warning-block:nth-child(4) {
+  z-index: 1;
+}
+
+.block-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 15px;
+  background: rgba(0, 21, 41, 0.9);
+  border-bottom: 1px solid rgba(24, 144, 255, 0.2);
+}
+
+.title-text {
+  color: #66dffb;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+.status-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.normal {
+  background-color: #52c41a;
+  box-shadow: 0 0 5px #52c41a;
+}
+
+.status-dot.warning {
+  background-color: #faad14;
+  box-shadow: 0 0 5px #faad14;
+}
+
+.status-dot.danger {
+  background-color: #ff4d4f;
+  box-shadow: 0 0 5px #ff4d4f;
+  animation: pulse 1.5s infinite;
+}
+
+.status-text {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.9rem;
+}
+
+.block-content {
+  flex: 1;
+  padding: 10px;
+  overflow: hidden;
+}
+
+.monitor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  height: 100%;
+}
+
+.monitor-item {
+  background: rgba(24, 144, 255, 0.1);
+  border-radius: 4px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.monitor-item:hover {
+  background: rgba(24, 144, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.monitor-item .label {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  margin-bottom: 5px;
+}
+
+.monitor-item .value {
+  color: #1890ff;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+.monitor-item .value.normal {
+  color: #52c41a;
+}
+
+.monitor-item .value.warning {
+  color: #faad14;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 5px #ff4d4f;
+  }
+  50% {
+    box-shadow: 0 0 15px #ff4d4f;
+  }
+  100% {
+    box-shadow: 0 0 5px #ff4d4f;
+  }
 }
 </style>

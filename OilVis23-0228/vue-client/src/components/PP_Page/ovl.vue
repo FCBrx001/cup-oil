@@ -1131,7 +1131,7 @@ export default {
                     }
                 },
             }, {
-                name: "阀点#1",
+                name: "十字窖#1",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -1148,7 +1148,7 @@ export default {
                 },
             },
             {
-                name: "阀点#2",
+                name: "十字窖#2",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -1164,7 +1164,7 @@ export default {
                     }
                 },
             }, {
-                name: "阀点#3",
+                name: "十字窖#3",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -1180,7 +1180,7 @@ export default {
                     }
                 },
             }, {
-                name: "阀点#4",
+                name: "十字窖#4",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -1196,7 +1196,7 @@ export default {
                     }
                 },
             }, {
-                name: "阀点#5",
+                name: "十字窖#5",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -1212,7 +1212,7 @@ export default {
                     }
                 },
             }, {
-                name: "阀点#6",
+                name: "十字窖#6",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -1228,7 +1228,7 @@ export default {
                     }
                 },
             }, {
-                name: "阀点#7",
+                name: "十字窖#7",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -1244,7 +1244,7 @@ export default {
                     }
                 },
             }, {
-                name: "阀点#8",
+                name: "十字窖#8",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -1260,7 +1260,7 @@ export default {
                     }
                 },
             }, {
-                name: "阀点#9",
+                name: "十字窖#9",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -1276,7 +1276,7 @@ export default {
                     }
                 },
             }, {
-                name: "阀点#10",
+                name: "十字窖#10",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -1292,7 +1292,7 @@ export default {
                     }
                 },
             }, {
-                name: "阀点#11",
+                name: "十字窖#11",
                 category: 0,
                 active: false,
                 symbolSize: 10,

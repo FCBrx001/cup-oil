@@ -4,77 +4,25 @@
     <div class="pipeline-monitoring">
       <!-- 阀室状态卡片 -->
       <div class="valve-cards" >
-        <div class="valve-card danger" @click="showValveDetails('阀室#1')">
+        <div 
+          v-for="(point, index) in highestElevationPoints" 
+          :key="point.id"
+          class="valve-card" 
+          :class="point.riskLevel === 'high' ? 'danger' : point.riskLevel === 'warning' ? 'warning' : 'normal'"
+          @click="showValveDetails(point.name)"
+        >
           <div class="valve-icon">
-            <i class="el-icon-warning"></i>
+            <i :class="point.riskLevel === 'high' ? 'el-icon-warning' : point.riskLevel === 'warning' ? 'el-icon-warning-outline' : 'el-icon-success'"></i>
           </div>
           <div class="valve-info">
-            <div class="valve-name">阀室#1</div>
-            <div class="valve-position">K125+600</div>
-            <div class="valve-elevation">高程: 13.7m</div>
+            <div class="valve-name">{{ point.name }}</div>
+            <div class="valve-position">{{ point.position }}</div>
+            <div class="valve-elevation">高程: {{ point.elevation.toFixed(1) }}m</div>
           </div>
           <div class="valve-status">
-            <div class="status-label">高风险</div>
-            <div class="countdown">{{ formattedCountdowns['阀室#1'] }}</div>
-            <div class="countdown-label">预计汽化</div>
-          </div>
-        </div>
-        
-        <div class="valve-card warning" @click="showValveDetails('阀室#2')">
-          <div class="valve-icon">
-            <i class="el-icon-warning-outline"></i>
-          </div>
-          <div class="valve-info">
-            <div class="valve-name">阀室#2</div>
-            <div class="valve-position">K118+350</div>
-            <div class="valve-elevation">高程: 10.2m</div>
-          </div>
-          <div class="valve-status">
-            <div class="status-label">中风险</div>
-            <div class="countdown">{{ formattedCountdowns['阀室#2'] }}</div>
-            <div class="countdown-label">预计临界</div>
-          </div>
-        </div>
-        
-        <div class="valve-card normal" @click="showValveDetails('阀室#3')">
-          <div class="valve-icon">
-            <i class="el-icon-success"></i>
-          </div>
-          <div class="valve-info">
-            <div class="valve-name">阀室#3</div>
-            <div class="valve-position">K112+800</div>
-            <div class="valve-elevation">高程: 9.5m</div>
-          </div>
-          <div class="valve-status">
-            <div class="status-label">正常</div>
-          </div>
-        </div>
-        
-        <div class="valve-card normal" @click="showValveDetails('阀室#4')">
-          <div class="valve-icon">
-            <i class="el-icon-success"></i>
-          </div>
-          <div class="valve-info">
-            <div class="valve-name">阀室#4</div>
-            <div class="valve-position">K108+450</div>
-            <div class="valve-elevation">高程: 8.3m</div>
-          </div>
-          <div class="valve-status">
-            <div class="status-label">正常</div>
-          </div>
-        </div>
-        
-        <div class="valve-card normal" @click="showValveDetails('阀室#5')">
-          <div class="valve-icon">
-            <i class="el-icon-success"></i>
-          </div>
-          <div class="valve-info">
-            <div class="valve-name">阀室#5</div>
-            <div class="valve-position">K102+150</div>
-            <div class="valve-elevation">高程: 7.8m</div>
-          </div>
-          <div class="valve-status">
-            <div class="status-label">正常</div>
+            <div class="status-label">{{ point.riskLevel === 'high' ? '高风险' : point.riskLevel === 'warning' ? '中风险' : '正常' }}</div>
+            <div v-if="point.riskLevel !== 'normal'" class="countdown">{{ formattedCountdowns[point.name] }}</div>
+            <div v-if="point.riskLevel !== 'normal'" class="countdown-label">{{ point.riskLevel === 'high' ? '预计汽化' : '预计临界' }}</div>
           </div>
         </div>
       </div>
@@ -92,11 +40,11 @@
       :modal="false"
       :lock-scroll="false"
     >
-      <div class="valve-detail-content" v-if="selectedValve">
+      <div class="valve-detail-content" v-if="selectedValve && selectedHighPoint">
         <div class="valve-detail-header">
           <div class="valve-detail-title">{{ selectedValve }} 运行状态详情</div>
-          <div class="valve-detail-status" :class="selectedValve === '阀室#1' ? 'danger' : selectedValve === '阀室#2' ? 'warning' : 'normal'">
-            {{ selectedValve === '阀室#1' ? '高风险' : selectedValve === '阀室#2' ? '中风险' : '正常' }}
+          <div class="valve-detail-status" :class="selectedHighPoint.riskLevel === 'high' ? 'danger' : selectedHighPoint.riskLevel === 'warning' ? 'warning' : 'normal'">
+            {{ selectedHighPoint.riskLevel === 'high' ? '高风险' : selectedHighPoint.riskLevel === 'warning' ? '中风险' : '正常' }}
           </div>
         </div>
         <div class="valve-detail-body">
@@ -106,15 +54,19 @@
               <div class="info-grid">
                 <div class="info-item">
                   <span class="label">公里标：</span>
-                  <span class="value">{{ selectedValve === '阀室#1' ? 'K125+600' : selectedValve === '阀室#2' ? 'K118+350' : 'K112+800' }}</span>
+                  <span class="value">{{ selectedHighPoint.position }}</span>
                 </div>
                 <div class="info-item">
                   <span class="label">高程：</span>
-                  <span class="value">{{ selectedValve === '阀室#1' ? '13.7m' : selectedValve === '阀室#2' ? '10.2m' : '9.5m' }}</span>
+                  <span class="value">{{ selectedHighPoint.elevation.toFixed(1) }}m</span>
+                </div>
+                <div class="info-item">
+                  <span class="label">里程：</span>
+                  <span class="value">{{ selectedHighPoint.mileage.toFixed(3) }} km</span>
                 </div>
                 <div class="info-item">
                   <span class="label">地理位置：</span>
-                  <span class="value">{{ selectedValve === '阀室#1' ? '东经119°12′45″, 北纬39°08′22″' : selectedValve === '阀室#2' ? '东经119°10′38″, 北纬39°07′15″' : '东经119°08′12″, 北纬39°06′53″' }}</span>
+                  <span class="value">{{ selectedHighPoint.coordinates }}</span>
                 </div>
               </div>
             </div>
@@ -123,7 +75,7 @@
               <div class="info-grid">
                 <div class="info-item">
                   <span class="label">当前压力：</span>
-                  <span class="value">{{ selectedValve === '阀室#1' ? '1.85 MPa' : selectedValve === '阀室#2' ? '2.05 MPa' : '2.35 MPa' }}</span>
+                  <span class="value">{{ selectedHighPoint.pressure }}</span>
                 </div>
                 <div class="info-item">
                   <span class="label">临界压力：</span>
@@ -131,38 +83,38 @@
                 </div>
                 <div class="info-item">
                   <span class="label">当前温度：</span>
-                  <span class="value">{{ selectedValve === '阀室#1' ? '26 ℃' : selectedValve === '阀室#2' ? '25 ℃' : '24 ℃' }}</span>
+                  <span class="value">{{ selectedHighPoint.temperature }}</span>
                 </div>
                 <div class="info-item">
-                  <span class="label">压力变化：</span>
-                  <span class="value" :class="selectedValve === '阀室#1' ? 'danger' : selectedValve === '阀室#2' ? 'warning' : 'normal'">
-                    {{ selectedValve === '阀室#1' ? '-0.05 MPa/h' : selectedValve === '阀室#2' ? '-0.02 MPa/h' : '-0.01 MPa/h' }}
+                  <span class="label">风险等级：</span>
+                  <span class="value" :class="selectedHighPoint.riskLevel">
+                    {{ selectedHighPoint.riskLevel === 'high' ? '高风险' : selectedHighPoint.riskLevel === 'warning' ? '中风险' : '正常' }}
                   </span>
                 </div>
               </div>
             </div>
-            <div class="info-section" v-if="selectedValve === '阀室#1' || selectedValve === '阀室#2'">
+            <div class="info-section" v-if="selectedHighPoint.riskLevel === 'high' || selectedHighPoint.riskLevel === 'warning'">
               <h3>预警信息</h3>
               <div class="warning-info">
                 <div class="warning-icon">
-                  <i :class="selectedValve === '阀室#1' ? 'el-icon-error' : 'el-icon-warning'"></i>
+                  <i :class="selectedHighPoint.riskLevel === 'high' ? 'el-icon-error' : 'el-icon-warning'"></i>
                 </div>
                 <div class="warning-content">
-                  <div class="warning-title">{{ selectedValve === '阀室#1' ? '高点汽化高风险预警' : '高点汽化中风险预警' }}</div>
+                  <div class="warning-title">{{ selectedHighPoint.riskLevel === 'high' ? '高点汽化高风险预警' : '高点汽化中风险预警' }}</div>
                   <div class="warning-desc">
-                    {{ selectedValve === '阀室#1' ? 
-                    `当前压力接近临界压力，预计${formattedCountdowns['阀室#1']}后达到汽化条件，请立即采取措施！` : 
-                    `压力下降速率较快，预计${formattedCountdowns['阀室#2']}后达到预警阈值，请密切关注！` }}
+                    {{ selectedHighPoint.riskLevel === 'high' ? 
+                    `当前压力接近临界压力，预计${selectedHighPoint.timeToVaporization}后达到汽化条件，请立即采取措施！` : 
+                    `压力下降速率较快，预计${selectedHighPoint.timeToVaporization}后达到预警阈值，请密切关注！` }}
                   </div>
                 </div>
               </div>
               
               <!-- 添加醒目的倒计时显示 -->
-              <div class="countdown-container">
-                <div class="countdown-title">{{ selectedValve === '阀室#1' ? '距离汽化还剩' : '距离临界还剩' }}</div>
-                <div class="countdown-box" :class="selectedValve === '阀室#1' ? 'danger' : 'warning'">
+              <div class="countdown-container" v-if="selectedHighPoint.timeToVaporization !== '--'">
+                <div class="countdown-title">{{ selectedHighPoint.riskLevel === 'high' ? '距离汽化还剩' : '距离临界还剩' }}</div>
+                <div class="countdown-box" :class="selectedHighPoint.riskLevel">
                   <div class="countdown-display">
-                    <span class="countdown">{{ selectedValve === '阀室#1' ? formattedCountdowns['阀室#1'] : formattedCountdowns['阀室#2'] }}</span>
+                    <span class="countdown">{{ selectedHighPoint.timeToVaporization }}</span>
                   </div>
                 </div>
               </div>
@@ -171,7 +123,7 @@
           <div class="action-buttons">
             <el-button type="primary" icon="el-icon-view">查看历史</el-button>
             <el-button type="warning" icon="el-icon-bell" @click="showAlarmDialog">设置警报</el-button>
-            <el-button v-if="selectedValve === '阀室#1'" type="danger" icon="el-icon-warning-outline">应急处置</el-button>
+            <el-button v-if="selectedHighPoint.riskLevel === 'high'" type="danger" icon="el-icon-warning-outline">应急处置</el-button>
           </div>
         </div>
       </div>
@@ -205,7 +157,7 @@
                 </div>
                 <div class="info-item">
                   <span class="label">风险点：</span>
-                  <span class="value">阀室#1 (K125+600)</span>
+                  <span class="value">{{ selectedHighPoint ? `${selectedHighPoint.name} (${selectedHighPoint.position})` : '高点#1 (K125+600)' }}</span>
                 </div>
                 <div class="info-item">
                   <span class="label">预警时间：</span>
@@ -213,7 +165,7 @@
                 </div>
                 <div class="info-item">
                   <span class="label">预计汽化时间：</span>
-                  <span class="value danger">{{ formattedCountdowns['阀室#1'] }}</span>
+                  <span class="value danger">{{ selectedHighPoint ? selectedHighPoint.timeToVaporization : '15:30' }}</span>
                 </div>
               </div>
             </div>
@@ -263,6 +215,7 @@
 
 <script>
 import { valveRoomApi } from '@/api/valveRoom'
+import countdownStore from '@/store/countdown'
 
 export default {
   name: 'VaporizationWarning',
@@ -270,20 +223,19 @@ export default {
     return {
       valveDetailVisible: false,
       selectedValve: null,
+      selectedHighPoint: null, // 选中的高点详情
       valveRooms: [], // 从数据库获取的阀室数据
       valveRoomDetails: {}, // 阀室详细信息缓存
       realTimeData: {}, // 实时数据
-      countdowns: {
-        '阀室#1': {
-          minutes: 12,
-          seconds: 30
-        },
-        '阀室#2': {
-          minutes: 35,
-          seconds: 45
-        }
-      },
-      countdownTimer: null,
+      
+      // 高点数据 - 与test_chart.vue保持一致
+      pipelineData: [], // 管线数据
+      highestElevationPoints: [], // 高程最高的3个点
+      maxMileage: 0,
+      
+      // 使用共享的倒计时状态
+      sharedCountdowns: {},
+      sharedFormattedCountdowns: {},
       dataUpdateTimer: null, // 数据更新定时器
       alarmDialogVisible: false,
       selectedAlarmLevel: 'low',
@@ -293,31 +245,209 @@ export default {
         app: false,
         phone: false
       },
-      loading: false
+      loading: false,
+      
+      // 高点风险数据配置 - 与test_chart.vue保持一致
+      highPointRiskData: {
+        '高点#1': {
+          riskLevel: 'high',
+          timeToVaporization: '15:30',
+          pressure: '1.82 MPa',
+          temperature: '28 ℃'
+        },
+        '高点#2': {
+          riskLevel: 'warning', 
+          timeToVaporization: '42:15',
+          pressure: '2.15 MPa',
+          temperature: '26 ℃'
+        },
+        '高点#3': {
+          riskLevel: 'normal',
+          timeToVaporization: '--',
+          pressure: '2.45 MPa',
+          temperature: '25 ℃'
+        }
+      }
     }
   },
   computed: {
     formattedCountdowns() {
-      return {
-        '阀室#1': `${this.countdowns['阀室#1'].minutes.toString().padStart(2, '0')}:${this.countdowns['阀室#1'].seconds.toString().padStart(2, '0')}`,
-        '阀室#2': `${this.countdowns['阀室#2'].minutes.toString().padStart(2, '0')}:${this.countdowns['阀室#2'].seconds.toString().padStart(2, '0')}`
-      }
+      // 使用共享的倒计时数据
+      return this.sharedFormattedCountdowns
     }
   },
   async mounted() {
-    this.startCountdown();
+    this.initSharedCountdown(); // 初始化共享倒计时
+    await this.loadPipelineData(); // 先加载管线数据
     await this.loadValveRoomData();
     this.startDataUpdate();
   },
   beforeDestroy() {
-    if (this.countdownTimer) {
-      clearInterval(this.countdownTimer);
-    }
+    // 移除倒计时监听
+    countdownStore.$off('countdown-updated', this.onCountdownUpdated);
+    
     if (this.dataUpdateTimer) {
       clearInterval(this.dataUpdateTimer);
     }
   },
   methods: {
+    // 初始化共享倒计时
+    initSharedCountdown() {
+      // 获取初始倒计时数据
+      const countdownData = countdownStore.getCountdownData();
+      this.sharedCountdowns = countdownData.countdowns;
+      this.sharedFormattedCountdowns = countdownData.formatted;
+      
+      // 监听倒计时更新事件
+      countdownStore.$on('countdown-updated', this.onCountdownUpdated);
+      
+      console.log('📊 VaporizationWarning: 初始化共享倒计时', this.sharedFormattedCountdowns);
+    },
+    
+    // 倒计时更新回调
+    onCountdownUpdated(data) {
+      this.sharedCountdowns = data.countdowns;
+      this.sharedFormattedCountdowns = data.formatted;
+    },
+    
+    // 重置倒计时
+    resetCountdown(pointName) {
+      countdownStore.resetCountdown(pointName);
+    },
+    
+    // 暂停/继续倒计时
+    toggleCountdown(pointName) {
+      countdownStore.toggleCountdown(pointName);
+    },
+
+    // 加载管线数据 - 与test_chart.vue保持一致
+    async loadPipelineData() {
+      this.loading = true;
+      try {
+        console.log('🔍 VaporizationWarning: 开始获取管线数据...');
+        const response = await this.$axios.get('/elevation/elevation-data');
+        
+        if (response.data.success && response.data.data && response.data.data.length > 0) {
+          // 处理真实数据 - 里程单位转换：米 → 千米
+          const allData = response.data.data.map(item => ({
+            _id: item._id,
+            里程: parseFloat(item.里程) / 1000, // 米转换为千米
+            高程: parseFloat(item.高程)
+          }));
+          
+          // 确保数据按里程排序
+          allData.sort((a, b) => a.里程 - b.里程);
+          
+          // 数据抽样：每50个数据点显示一个值
+          const samplingInterval = 50;
+          this.pipelineData = [];
+          for (let i = 0; i < allData.length; i += samplingInterval) {
+            this.pipelineData.push(allData[i]);
+          }
+          
+          // 确保包含最后一个数据点
+          if (allData.length > 0 && this.pipelineData[this.pipelineData.length - 1] !== allData[allData.length - 1]) {
+            this.pipelineData.push(allData[allData.length - 1]);
+          }
+          
+          this.maxMileage = response.data.maxDistance ? response.data.maxDistance / 1000 : Math.max(...this.pipelineData.map(item => item.里程));
+          
+          console.log('✅ VaporizationWarning: 成功获取管线数据');
+        } else {
+          console.warn('⚠️ VaporizationWarning: 未获取到有效数据，使用模拟数据');
+          this.generateMockPipelineData();
+        }
+        
+        // 计算高程最高的三个点
+        this.findHighestElevationPoints();
+        
+      } catch (error) {
+        console.error('❌ VaporizationWarning: 获取管线数据失败:', error);
+        this.generateMockPipelineData();
+        this.findHighestElevationPoints();
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    // 生成模拟管线数据
+    generateMockPipelineData() {
+      this.maxMileage = 94.4;
+      const allMockData = [];
+      for (let i = 0; i < 500; i++) {
+        const distance = (94.4 * i) / 499;
+        let elevation = -20 + Math.random() * 520 + Math.sin(i / 499 * Math.PI * 3) * 150;
+        
+        if (i >= 100 && i <= 150) {
+          elevation = -50 + Math.random() * 30;
+        } else if (i >= 250 && i <= 300) {
+          elevation = -30 + Math.random() * 40;
+        }
+        
+        allMockData.push({
+          _id: `mock_${i + 1}`,
+          里程: parseFloat(distance.toFixed(3)),
+          高程: parseFloat(elevation.toFixed(1))
+        });
+      }
+      
+      // 抽样
+      const samplingInterval = 50;
+      this.pipelineData = [];
+      for (let i = 0; i < allMockData.length; i += samplingInterval) {
+        this.pipelineData.push(allMockData[i]);
+      }
+      
+      if (allMockData.length > 0 && this.pipelineData[this.pipelineData.length - 1] !== allMockData[allMockData.length - 1]) {
+        this.pipelineData.push(allMockData[allMockData.length - 1]);
+      }
+    },
+
+    // 计算高程最高的三个点 - 与test_chart.vue完全一致
+    findHighestElevationPoints() {
+      if (!this.pipelineData || this.pipelineData.length === 0) {
+        console.warn('⚠️ VaporizationWarning: 没有管线数据，无法计算高点');
+        return;
+      }
+      
+      // 复制数据并按高程排序
+      const sortedData = [...this.pipelineData].sort((a, b) => b.高程 - a.高程);
+      
+      // 取前3个最高点
+      this.highestElevationPoints = sortedData.slice(0, 3).map((point, index) => ({
+        id: `high_point_${index + 1}`,
+        name: `高点#${index + 1}`,
+        mileage: point.里程,
+        elevation: point.高程,
+        position: `K${(point.里程).toFixed(1)}+${((point.里程 % 1) * 1000).toFixed(0).padStart(3, '0')}`,
+        coordinates: `东经${(119 + point.里程 * 0.01).toFixed(5)}°, 北纬${(39 + point.里程 * 0.005).toFixed(5)}°`,
+        ...this.highPointRiskData[`高点#${index + 1}`]
+      }));
+      
+      console.log('🏔️ VaporizationWarning: 高程最高的三个点:', this.highestElevationPoints);
+      
+      // 更新阀室数据以匹配高点数据
+      this.updateValveRoomsFromHighPoints();
+    },
+
+    // 根据高点数据更新阀室信息
+    updateValveRoomsFromHighPoints() {
+      this.valveRooms = this.highestElevationPoints.map((point, index) => ({
+        id: index + 1,
+        name: point.name,
+        position: point.position,
+        elevation: point.elevation,
+        mileage: point.mileage,
+        coordinates: point.coordinates,
+        status: point.riskLevel,
+        pressure: point.pressure,
+        temperature: point.temperature,
+        timeToVaporization: point.timeToVaporization
+      }));
+      
+      console.log('📋 VaporizationWarning: 更新后的阀室数据:', this.valveRooms);
+    },
+
     // 加载阀室数据
     async loadValveRoomData() {
       try {
@@ -355,11 +485,9 @@ export default {
     // 使用模拟数据
     useSimulatedData() {
       this.valveRooms = [
-        { id: 1, name: '阀室#1', position: 'K125+600', elevation: 13.7, status: 'danger' },
-        { id: 2, name: '阀室#2', position: 'K118+350', elevation: 10.2, status: 'warning' },
-        { id: 3, name: '阀室#3', position: 'K112+800', elevation: 9.5, status: 'normal' },
-        { id: 4, name: '阀室#4', position: 'K108+450', elevation: 8.3, status: 'normal' },
-        { id: 5, name: '阀室#5', position: 'K102+150', elevation: 7.8, status: 'normal' }
+        { id: 1, name: '高点#1', position: 'K125+600', elevation: 13.7, status: 'danger' },
+        { id: 2, name: '高点#2', position: 'K118+350', elevation: 10.2, status: 'warning' },
+        { id: 3, name: '高点#3', position: 'K112+800', elevation: 9.5, status: 'normal' }
       ];
     },
 
@@ -385,6 +513,14 @@ export default {
     async showValveDetails(valveName) {
       this.selectedValve = valveName;
       
+      // 查找对应的高点数据
+      this.selectedHighPoint = this.highestElevationPoints.find(point => point.name === valveName);
+      
+      if (!this.selectedHighPoint) {
+        console.error('未找到对应的高点数据:', valveName);
+        return;
+      }
+      
       // 获取阀室详细信息
       if (!this.valveRoomDetails[valveName]) {
         try {
@@ -402,25 +538,7 @@ export default {
         this.valveDetailVisible = true;
       });
     },
-    startCountdown() {
-      this.countdownTimer = setInterval(() => {
-        // 更新阀室#1倒计时
-        if (this.countdowns['阀室#1'].seconds > 0) {
-          this.countdowns['阀室#1'].seconds--;
-        } else if (this.countdowns['阀室#1'].minutes > 0) {
-          this.countdowns['阀室#1'].minutes--;
-          this.countdowns['阀室#1'].seconds = 59;
-        }
-        
-        // 更新阀室#2倒计时
-        if (this.countdowns['阀室#2'].seconds > 0) {
-          this.countdowns['阀室#2'].seconds--;
-        } else if (this.countdowns['阀室#2'].minutes > 0) {
-          this.countdowns['阀室#2'].minutes--;
-          this.countdowns['阀室#2'].seconds = 59;
-        }
-      }, 1000);
-    },
+
     showAlarmDialog() {
       this.alarmDialogVisible = true;
       this.valveDetailVisible = false;
@@ -488,16 +606,16 @@ export default {
 /* 阀室卡片布局 */
 .valve-cards {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   padding: 10px 0;
   margin-bottom: 0;
+  gap: 20px;
 }
 
 .valve-card {
-  flex: 1;
+  width: 200px;
   height: 160px;
   background: rgba(0, 21, 41, 0.7);
-  margin: 0 5px;
   border-radius: 4px;
   display: flex;
   flex-direction: column;
