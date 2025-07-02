@@ -1,6 +1,5 @@
 <template>
   <div>
-    <span class="wgrytj_bt" style="font-size:1.2rem;padding: 0;">高点汽化风险监测</span>
     <div class="pipeline-monitoring">
       <!-- 阀室状态卡片 -->
       <div class="valve-cards" >
@@ -16,13 +15,13 @@
           </div>
           <div class="valve-info">
             <div class="valve-name">{{ point.name }}</div>
-            <div class="valve-position">{{ point.position }}</div>
+            <!-- <div class="valve-position">{{ point.position }}</div> -->
             <div class="valve-elevation">高程: {{ point.elevation.toFixed(1) }}m</div>
           </div>
           <div class="valve-status">
             <div class="status-label">{{ point.riskLevel === 'high' ? '高风险' : point.riskLevel === 'warning' ? '中风险' : '正常' }}</div>
             <div v-if="point.riskLevel !== 'normal'" class="countdown">{{ formattedCountdowns[point.name] }}</div>
-            <div v-if="point.riskLevel !== 'normal'" class="countdown-label">{{ point.riskLevel === 'high' ? '预计汽化' : '预计临界' }}</div>
+            <!-- <div v-if="point.riskLevel !== 'normal'" class="countdown-label">{{ point.riskLevel === 'high' ? '预计汽化' : '预计临界' }}</div> -->
           </div>
         </div>
       </div>
@@ -614,7 +613,7 @@ export default {
 
 .valve-card {
   width: 200px;
-  height: 160px;
+  height: 120px;
   background: rgba(0, 21, 41, 0.7);
   border-radius: 4px;
   display: flex;

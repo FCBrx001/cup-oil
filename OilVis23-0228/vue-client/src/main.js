@@ -46,6 +46,23 @@ router.beforeEach((to,from,next)=>{
 // 不需要每次都 import一下 axios了，直接使用 $axios 即可
 Vue.prototype.$axios = Axios;
 Axios.defaults.baseURL='/api'
+
+// 添加请求拦截器，自动添加token（除了登录和验证码接口）
+Axios.interceptors.request.use(config => {
+  // 排除不需要token的接口
+  const excludeUrls = ['/Judge/login', '/Judge/check', '/hpdg/']
+  const needsToken = !excludeUrls.some(url => config.url.includes(url))
+
+  if (needsToken) {
+    const token = sessionStorage.getItem('token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+  }
+  return config
+}, error => {
+  return Promise.reject(error)
+})
 Vue.use(ElementUI)
 Vue.config.productionTip = false
 // import { render } from 'node-sass'

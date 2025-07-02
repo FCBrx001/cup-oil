@@ -8,12 +8,12 @@
         <i class="corner-bl"></i>
         <i class="corner-br"></i> -->
       </div>
-      <div class="title-wrapper">
+      <!-- <div class="title-wrapper">
         <span class="title-bracket left">[</span>
         <span class="title-text">管段状态信息</span>
         <span class="title-bracket right">]</span>
-      </div>
-    </div>
+      </div> -->
+    <!-- </div> -->
 
     <!-- 管段选择器 -->
     <div class="pipeline-selector">
@@ -41,63 +41,64 @@
         </div>
       </div>
     </div>
+    </div>
 
     <!-- 管段状态信息主体 -->
     <div class="status-info-content">
       <div class="info-wrapper">
         <!-- 基本状态信息网格 -->
         <div class="basic-info-grid">
-          <div class="info-item">
+          <!-- <div class="info-item">
             <span class="label">管段名称</span>
             <span class="value">{{ currentPipelineData.name }}</span>
-          </div>
-          <div class="info-item">
+          </div> -->
+          <div class="info-item info-other">
             <span class="label">输运状态</span>
             <span class="value" :class="getStatusClass(displayStatus)">
               {{ displayStatus }}
             </span>
           </div>
-          <div class="info-item">
+          <!-- <div class="info-item">
             <span class="label">阀位点数</span>
             <span class="value normal">{{ currentPipelineData.valvePoints }}</span>
-          </div>
-          <div class="info-item">
+          </div> -->
+          <div class="info-item info-other">
             <span class="label">停输时长</span>
             <span class="value normal">{{ displayStopDuration }}</span>
           </div>
-          <div class="info-item">
+          <div class="info-item info-other">
             <span class="label">输运油品</span>
             <span class="value normal">{{ currentPipelineData.oilType }}</span>
           </div>
-          <div class="info-item">
+          <div class="info-item info-other">
             <span class="label">油品密度</span>
             <span class="value normal">{{ currentPipelineData.oilDensity }}</span>
           </div>
-          <div class="info-item">
+          <div class="info-item info-other">
             <span class="label">站间高差</span>
             <span class="value normal">{{ currentPipelineData.heightDiff }}</span>
           </div>
-          <div class="info-item">
+          <div class="info-item info-other">
             <span class="label">输送方向</span>
             <span class="value normal">{{ currentPipelineData.direction }}</span>
           </div>
-          <div class="info-item">
+          <!-- <div class="info-item">
             <span class="label">所属管线</span>
             <span class="value normal">{{ currentPipelineData.line }}</span>
-          </div>
+          </div> -->
         </div>
 
         <!-- 实时数据显示（仅黄埔-东莞管段） -->
-        <div v-if="selectedPipeline === 'pipeline1' && realtimeData" class="realtime-section">
+        <div  class="realtime-section">
           <div class="section-title">实时数据状态</div>
           <div class="realtime-grid">
             <div class="realtime-item">
               <span class="label">数据时间</span>
-              <span class="value">{{ formatTime(realtimeData.time) }}</span>
+              <span class="value">{{ realtimeData ? formatRealtimeTime(realtimeData.time) : '--' }}</span>
             </div>
             <div class="realtime-item">
               <span class="label">季节信息</span>
-              <span class="value">{{ realtimeData.season_info }}</span>
+              <span class="value">{{ currentSeasonInfo }}</span>
             </div>
             <div class="realtime-item">
               <span class="label">连接状态</span>
@@ -290,31 +291,58 @@ export default {
   },
   
   computed: {
+
     // 当前管段数据
     currentPipelineData() {
       return this.pipelineData[this.selectedPipeline];
     },
-    
+
     // 当前管段标签
     currentPipelineLabel() {
       const option = this.pipelineOptions.find(item => item.value === this.selectedPipeline);
       return option ? option.label : '';
     },
 
+
+
+    // 季节信息（从WebSocket真实数据获取）
+    currentSeasonInfo() {
+      // 如果有WebSocket实时数据，使用真实的节气信息
+      if (this.realtimeData && this.realtimeData.season_info) {
+        return this.realtimeData.season_info;
+      }
+
+      // 否则基于当前月份计算季节
+      const month = new Date().getMonth() + 1;
+      if (month >= 3 && month <= 5) {
+        return '春季';
+      } else if (month >= 6 && month <= 8) {
+        return '夏季';
+      } else if (month >= 9 && month <= 11) {
+        return '秋季';
+      } else {
+        return '冬季';
+      }
+    },
+
     // 显示的输运状态
     displayStatus() {
-      // 如果是黄埔-东莞管段且有实时数据，使用实时状态
-      if (this.selectedPipeline === 'pipeline1' && this.realtimeData && this.realtimeData.state) {
+      // 如果有WebSocket实时数据，使用真实状态
+      if (this.realtimeData && this.realtimeData.state) {
         return this.realtimeData.state === 'Run' ? '运行中' : '停输中';
+      } else if (this.connectionStatus === 'connected') {
+        // 如果有WebSocket连接，认为是运行中
+        return '运行中';
+      } else {
+        // 没有连接时，使用静态数据或显示停输
+        return this.currentPipelineData.status || '停输中';
       }
-      // 否则使用静态数据
-      return this.currentPipelineData.status;
     },
 
     // 显示的停输时长
     displayStopDuration() {
-      // 如果是黄埔-东莞管段且有实时数据
-      if (this.selectedPipeline === 'pipeline1' && this.realtimeData) {
+      // 如果有实时数据
+      if (this.realtimeData) {
         if (this.realtimeData.state === 'Run') {
           return '0h';
         } else if (this.stopStartTime) {
@@ -325,11 +353,17 @@ export default {
         }
       }
       // 否则使用静态数据
-      return this.currentPipelineData.stopDuration;
+      return this.currentPipelineData.stopDuration || '0h';
     }
   },
 
+
+
   mounted() {
+    console.log('🔧 PipelineStatusInfo 组件已挂载');
+    console.log('📊 当前选中管段:', this.selectedPipeline);
+    console.log('📊 实时数据状态:', this.realtimeData);
+    console.log('📊 连接状态:', this.connectionStatus);
     this.connectWebSocket();
   },
 
@@ -349,6 +383,8 @@ export default {
         this.ws.onopen = () => {
           console.log('管段状态WebSocket连接成功');
           this.connectionStatus = 'connected';
+          // 向父组件发送连接状态变化事件
+          this.$emit('connection-status-changed', 'connected');
         };
 
         this.ws.onmessage = (event) => {
@@ -388,6 +424,8 @@ export default {
         this.ws.onclose = () => {
           console.log('管段状态WebSocket连接关闭');
           this.connectionStatus = 'disconnected';
+          // 向父组件发送连接状态变化事件
+          this.$emit('connection-status-changed', 'disconnected');
           // 5秒后尝试重连
           setTimeout(() => {
             if (!this.ws || this.ws.readyState === WebSocket.CLOSED) {
@@ -399,6 +437,8 @@ export default {
         this.ws.onerror = (error) => {
           console.error('管段状态WebSocket连接错误:', error);
           this.connectionStatus = 'disconnected';
+          // 向父组件发送连接状态变化事件
+          this.$emit('connection-status-changed', 'disconnected');
         };
 
       } catch (error) {
@@ -415,11 +455,27 @@ export default {
       }
     },
 
+
+
     // 格式化时间戳
     formatTime(timestamp) {
       if (!timestamp) return '--';
       const date = new Date(timestamp * 1000);
       return date.toLocaleString('zh-CN');
+    },
+
+    // 格式化实时数据时间（Unix时间戳）
+    formatRealtimeTime(timestamp) {
+      if (!timestamp) return '--';
+      // 如果是Unix时间戳（秒），需要转换为毫秒
+      const date = new Date(timestamp * 1000);
+      return date.toLocaleString('zh-CN', {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
     },
 
     // 处理管段选择变化
@@ -453,19 +509,20 @@ export default {
 <style>
 /* 主容器样式 */
 .pipeline-status-container {
-  width: 100%;
-  height: 550px;
-  position: relative;
-  background: rgba(0, 21, 41, 0.8);
-  border-radius: 8px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  width: auto;
+    /* height: 53%; */
+    /* position: relative; */
+    /* background: rgba(0, 21, 41, 0.8); */
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
 }
 
 /* 组件头部样式 */
 .component-header {
   position: relative;
+  height: 30px;
   padding: 15px 20px;
   border-bottom: 1px solid rgba(102, 223, 251, 0.3);
 }
@@ -537,7 +594,7 @@ export default {
 
 /* 管段选择器样式 */
 .pipeline-selector {
-  padding: 15px;
+  margin-top: -5px;
   display: flex;
   justify-content: center;
 }
@@ -609,7 +666,9 @@ export default {
   display: flex;
   flex-direction: column;
 }
-
+.info-other {
+    flex-direction: column;
+  }
 .info-wrapper {
   flex: 1;
   display: flex;
@@ -628,7 +687,7 @@ export default {
 
 .info-item {
   display: flex;
-  flex-direction: column;
+  /* flex-direction: column; */
   background: rgba(0, 21, 41, 0.4);
   padding: 8px 12px;
   border-radius: 6px;
@@ -668,14 +727,14 @@ export default {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 15px;
-  margin-top: 10px;
+  margin-top: 0px;
   flex-shrink: 0;
 }
 
 .pressure-card {
   background: rgba(24, 144, 255, 0.08);
   border-radius: 8px;
-  padding: 15px;
+  padding: 2px;
   border: 1px solid rgba(24, 144, 255, 0.2);
   transition: all 0.3s ease;
 }
@@ -845,7 +904,10 @@ export default {
   border-radius: 8px;
   padding: 15px;
   border: 1px solid rgba(24, 144, 255, 0.2);
-  margin-top: 15px;
+  margin-top: 0px;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 .realtime-section .section-title {
@@ -868,7 +930,7 @@ export default {
   display: flex;
   flex-direction: column;
   background: rgba(0, 21, 41, 0.4);
-  padding: 8px 12px;
+  padding: 0 0 0 5px;
   border-radius: 6px;
   border: 1px solid rgba(24, 144, 255, 0.2);
   transition: all 0.3s ease;

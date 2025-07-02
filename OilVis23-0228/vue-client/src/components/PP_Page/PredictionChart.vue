@@ -47,6 +47,14 @@
               <i class="icon-pressure"></i>
               压力
             </button>
+            <!-- 测试按钮 -->
+            <button 
+              class="toggle-btn"
+              @click="testPredictionData"
+              style="background: rgba(255, 193, 7, 0.1); border-color: rgba(255, 193, 7, 0.6);"
+            >
+              🧪 测试预测
+            </button>
           </div>
         </div>
       </div>
@@ -56,33 +64,35 @@
       <!-- 双图表模式（多站点对比）-->
       <div v-if="shouldUseDualCharts" class="dual-chart-container">
         <div class="chart-section" v-if="showTemperature">
-          <h4>温度对比分析</h4>
-          <div id="temperature_chart"></div>
+          <div id="temperature_chart" style="width:100%; height:300px;"></div>
         </div>
         <div class="chart-section" v-if="showPressure">
-          <h4>压力对比分析</h4>
-          <div id="pressure_chart"></div>
+          <div id="pressure_chart" style="width:100%; height:300px;"></div>
         </div>
       </div>
       
       <!-- 单图表模式（默认或单站点）-->
       <div v-else>
-        <div id="prediction_chart"></div>
+        <div id="prediction_chart" style="width:100%; height:300px;"></div>
       </div>
+    </div>
+    
+    <!-- 数据状态显示 -->
+    <div class="data-status" style="margin-top: 10px; padding: 8px; background: rgba(0, 21, 41, 0.4); border-radius: 4px; font-size: 12px; color: #66dffb;">
+      <span>当前站点: {{ currentStationName }}</span> | 
+      <span>真实数据: 温度{{ realDataCount.temperature }}条 / 压力{{ realDataCount.pressure }}条</span> | 
+      <span>预测数据: 温度{{ predictionDataCount.temperature }}条 / 压力{{ predictionDataCount.pressure }}条</span>
     </div>
   </div>
 </template>
 
 <script>
 import * as echarts from 'echarts';
+import { mapActions, mapGetters } from 'vuex';
 
 export default {
   name: 'PredictionChart',
   props: {
-    pipelineId: {
-      type: String,
-      default: 'pipeline1'
-    },
     selectedValves: {
       type: Array,
       default: () => []
@@ -95,36 +105,35 @@ export default {
       temperature_chart: null,
       pressure_chart: null,
       
-      // 数据数组
-      actualTemperatureData: [],
-      actualPressureData: [],
-      predictionTemperatureData: [],
-      predictionPressureData: [],
-      
-      // 多站点数据存储
-      multiStationData: new Map(),
+      // 默认显示的站点名称
+      defaultStationName: '十字窖#2',
       
       // 定时器
       predictionTimer: null,
+      realTimeTimer: null,
+      resizeTimer: null,
       
       // 显示选项
       displayOptions: ['temperature', 'pressure'],
       
-      // 颜色配置 - 科技蓝色主题
+      // 颜色配置
       stationColors: [
-        '#66dffb', // 主蓝色
-        '#52c41a', // 绿色
-        '#1890ff', // 深蓝
-        '#13c2c2', // 青色
-        '#722ed1', // 紫色
-        '#faad14', // 橙色
-        '#eb2f96', // 粉色
-        '#fa8c16'  // 橙红色
-      ]
+        '#66dffb', '#52c41a', '#1890ff', '#13c2c2', 
+        '#722ed1', '#faad14', '#eb2f96', '#fa8c16'
+      ],
+      dataInitialized: false
     }
   },
   
   computed: {
+    ...mapGetters([
+      'getCombinedStationData',
+      'getRealTimeUpdateFlag',
+      'getPredictionUpdateFlag',
+      'getRealTimeDataCount',
+      'getPredictionDataCount'
+    ]),
+    
     showTemperature() {
       return this.displayOptions.includes('temperature');
     },
@@ -132,96 +141,185 @@ export default {
       return this.displayOptions.includes('pressure');
     },
     shouldUseDualCharts() {
-      // 只有当选择了多个站点时才使用双图表模式
-      return this.selectedValves && this.selectedValves.length > 1;
+      return this.selectedValves && this.selectedValves.length === 2;
+    },
+    currentStationName() {
+      return this.selectedValves.length > 0 
+        ? this.selectedValves[0].valveName 
+        : this.defaultStationName;
     },
     chartTitle() {
-      if (this.selectedValves && this.selectedValves.length === 1) {
-        return `${this.selectedValves[0].valveName}参数预测分析`;
-      } else if (this.selectedValves && this.selectedValves.length > 1) {
-        return `多站点参数对比分析 (${this.selectedValves.length}个站点)`;
-      } else {
-        return '管段参数动态预测 (黄埔站)';
+      if (this.shouldUseDualCharts) {
+        return `多站点参数对比分析 (${this.selectedValves.map(v => v.valveName).join(' vs ')})`;
       }
+      return `${this.currentStationName} 参数预测分析`;
+    },
+    realDataCount() {
+      return this.getRealTimeDataCount(this.currentStationName);
+    },
+    predictionDataCount() {
+      return this.getPredictionDataCount(this.currentStationName);
     }
   },
 
   mounted() {
-    // 组件挂载时立即生成数据和绘制图表
-    this.generateInitialData();
-    this.$nextTick(() => {
+    // 添加窗口resize监听
+    window.addEventListener('resize', this.handleResize);
+    
+    // 适当延迟初始化确保DOM已渲染
+    setTimeout(() => {
       this.initChart();
+      this.$nextTick(() => {
+        // 启动数据获取
+        this.startDataFetching();
     });
+    }, 300);
   },
 
   beforeDestroy() {
-    // 清理定时器
-    if (this.predictionTimer) {
-      clearInterval(this.predictionTimer);
-    }
+    // 移除窗口resize监听
+    window.removeEventListener('resize', this.handleResize);
+    this.stopDataFetching();
     
-    // 销毁图表实例
+    // 销毁所有图表实例
     this.disposeCharts();
   },
 
   methods: {
-    initChart() {
-      this.disposeCharts(); // 先清理现有图表
+    ...mapActions([
+      'fetchPredictionData',
+      'fetchNextPredictionData'
+    ]),
+
+    // 处理窗口大小变化
+    handleResize() {
+      if (this.resizeTimer) {
+        clearTimeout(this.resizeTimer);
+      }
+      this.resizeTimer = setTimeout(() => {
+        // 仅重新初始化图表，不重新获取数据
+        this.initChartOnly();
+      }, 200);
+    },
+
+    // 初始化图表而不重置数据
+    initChartOnly() {
+      this.disposeCharts();
       
       this.$nextTick(() => {
         setTimeout(() => {
-          // 重新生成初始数据
-          this.generateInitialData();
-          
+          try {
+            if (this.shouldUseDualCharts) {
+              this.initDualCharts();
+            } else {
+              this.initSingleChart();
+            }
+        this.drawCharts();
+          } catch (error) {
+            console.error('初始化图表失败:', error);
+            // 再次尝试初始化，有时DOM可能未完全准备好
+            setTimeout(() => this.retryInitChart(), 500);
+          }
+        }, 100);
+      });
+    },
+
+    initChart() {
+      this.disposeCharts();
+      
+      this.$nextTick(() => {
+        setTimeout(() => {
+          try {
           if (this.shouldUseDualCharts) {
             this.initDualCharts();
           } else {
             this.initSingleChart();
           }
           this.drawCharts();
-          this.startDataUpdates();
+            
+            // 只有在首次加载时才启动数据获取
+            if (!this.dataInitialized) {
+              this.startDataFetching();
+              this.dataInitialized = true;
+            }
+          } catch (error) {
+            console.error('初始化图表失败:', error);
+            // 再次尝试初始化，有时DOM可能未完全准备好
+            setTimeout(() => this.retryInitChart(), 500);
+          }
         }, 100);
       });
+    },
+    
+    // 新增：重试初始化图表的方法
+    retryInitChart() {
+      try {
+        console.log('重试初始化图表...');
+        if (this.shouldUseDualCharts) {
+          this.initDualCharts();
+        } else {
+          this.initSingleChart();
+        }
+        this.drawCharts();
+      } catch (error) {
+        console.error('重试初始化图表失败:', error);
+      }
     },
 
     initSingleChart() {
       const chartDom = document.getElementById('prediction_chart');
       if (chartDom && chartDom.offsetWidth > 0 && chartDom.offsetHeight > 0) {
         this.prediction_chart = echarts.init(chartDom);
-        console.log('单图表初始化成功');
+        console.log('单图表模式初始化成功, 容器尺寸:', chartDom.offsetWidth, 'x', chartDom.offsetHeight);
+      } else {
+        console.warn('单图表容器尺寸不正确或不存在:', chartDom ? chartDom.offsetWidth : undefined, 'x', chartDom ? chartDom.offsetHeight : undefined);
       }
     },
 
     initDualCharts() {
-      if (this.showTemperature) {
-        const tempChartDom = document.getElementById('temperature_chart');
-        if (tempChartDom && tempChartDom.offsetWidth > 0 && tempChartDom.offsetHeight > 0) {
-          this.temperature_chart = echarts.init(tempChartDom);
-          console.log('温度图表初始化成功');
-        }
+      const tempChartDom = document.getElementById('temperature_chart');
+      if (tempChartDom && tempChartDom.offsetWidth > 0 && tempChartDom.offsetHeight > 0) {
+        this.temperature_chart = echarts.init(tempChartDom);
+        console.log('温度图表初始化成功, 容器尺寸:', tempChartDom.offsetWidth, 'x', tempChartDom.offsetHeight);
+      } else {
+        console.warn('温度图表容器尺寸不正确或不存在:', tempChartDom ? tempChartDom.offsetWidth : undefined, 'x', tempChartDom ? tempChartDom.offsetHeight : undefined);
       }
 
-      if (this.showPressure) {
-        const pressureChartDom = document.getElementById('pressure_chart');
-        if (pressureChartDom && pressureChartDom.offsetWidth > 0 && pressureChartDom.offsetHeight > 0) {
-          this.pressure_chart = echarts.init(pressureChartDom);
-          console.log('压力图表初始化成功');
-        }
+      const pressChartDom = document.getElementById('pressure_chart');
+      if (pressChartDom && pressChartDom.offsetWidth > 0 && pressChartDom.offsetHeight > 0) {
+        this.pressure_chart = echarts.init(pressChartDom);
+        console.log('压力图表初始化成功, 容器尺寸:', pressChartDom.offsetWidth, 'x', pressChartDom.offsetHeight);
+      } else {
+        console.warn('压力图表容器尺寸不正确或不存在:', pressChartDom ? pressChartDom.offsetWidth : undefined, 'x', pressChartDom ? pressChartDom.offsetHeight : undefined);
       }
     },
 
     disposeCharts() {
+      try {
       if (this.prediction_chart) {
         this.prediction_chart.dispose();
         this.prediction_chart = null;
       }
+      } catch (err) {
+        console.error('销毁单图表失败:', err);
+      }
+      
+      try {
       if (this.temperature_chart) {
         this.temperature_chart.dispose();
         this.temperature_chart = null;
       }
+      } catch (err) {
+        console.error('销毁温度图表失败:', err);
+      }
+      
+      try {
       if (this.pressure_chart) {
         this.pressure_chart.dispose();
         this.pressure_chart = null;
+        } 
+      } catch (err) {
+        console.error('销毁压力图表失败:', err);
       }
     },
 
@@ -239,1248 +337,194 @@ export default {
 
     drawPredictionChart() {
       if (!this.prediction_chart) return;
-
-      try {
-        const option = {
-          backgroundColor: 'transparent',
-          title: {
-            left: 'center',
-            textStyle: {
-              color: '#66dffb',
-              fontSize: 14,
-              fontWeight: 'normal'
-            }
-          },
-          tooltip: {
-            trigger: 'axis',
-            backgroundColor: 'rgba(0, 21, 41, 0.95)',
-            borderColor: '#66dffb',
-            borderWidth: 1,
-            textStyle: {
-              color: '#ffffff',
-              fontSize: 12
-            },
-            axisPointer: {
-              type: 'cross',
-              crossStyle: {
-                color: 'rgba(102, 223, 251, 0.6)'
-              }
-            }
-          },
-          legend: {
-            orient: 'horizontal',
-            top: 25,
-            textStyle: {
-              color: '#66dffb',
-              fontSize: 12
-            },
-            itemGap: 20,
-            itemWidth: 25,
-            itemHeight: 14
-          },
-          grid: {
-            left: '8%',
-            right: '8%',
-            bottom: '15%',
-            top: '30%',
-            containLabel: true,
-            borderColor: 'rgba(102, 223, 251, 0.1)'
-          },
-          xAxis: {
-            type: 'time',
-            axisLine: {
-              lineStyle: {
-                color: 'rgba(102, 223, 251, 0.6)',
-                width: 1
-              }
-            },
-            axisLabel: {
-              color: 'rgba(102, 223, 251, 0.8)',
-              fontSize: 11,
-              formatter: function (value) {
-                const date = new Date(value);
-                return date.getHours() + ':' + (date.getMinutes() < 10 ? '0' : '') + date.getMinutes();
-              }
-            },
-            axisTick: {
-              show: false
-            },
-            splitLine: {
-              show: false
-            }
-          },
-          yAxis: this.getSingleChartYAxis(),
-          dataZoom: [
-            // X轴滑动条
-            {
-              type: 'slider',
-              show: true,
-              xAxisIndex: 0,
-              height: 20,
-              bottom: 0,
-              borderColor: 'rgba(102, 223, 251, 0.3)',
-              textStyle: {
-                color: '#66dffb'
-              },
-              handleStyle: {
-                color: '#66dffb'
-              },
-              dataBackground: {
-                areaStyle: {
-                  color: 'rgba(102, 223, 251, 0.2)'
-                }
-              },
-              fillerColor: 'rgba(102, 223, 251, 0.3)',
-              start: 0,
-              end: 100
-            },
-            // X轴内部缩放
-            {
-              type: 'inside',
-              xAxisIndex: 0
-            },
-            // Y轴滑动条
-            {
-              type: 'slider',
-              show: true,
-              yAxisIndex: 0,
-              width: 20,
-              left: 0,
-              borderColor: 'rgba(102, 223, 251, 0.3)',
-              textStyle: {
-                color: '#66dffb'
-              },
-              handleStyle: {
-                color: '#66dffb'
-              },
-              dataBackground: {
-                areaStyle: {
-                  color: 'rgba(102, 223, 251, 0.2)'
-                }
-              },
-              fillerColor: 'rgba(102, 223, 251, 0.3)'
-            },
-            // Y轴内部缩放
-            {
-              type: 'inside',
-              yAxisIndex: 0
-            }
-          ],
-          series: this.getSingleChartSeries()
-        };
-
-        this.prediction_chart.setOption(option);
-        console.log('单图表绘制完成');
-      } catch (error) {
-        console.error('绘制单图表时出错:', error);
-      }
+      const option = this.getBaseChartOption(this.currentStationName);
+        this.prediction_chart.setOption(option, true);
     },
 
     drawDualCharts() {
-      this.drawTemperatureChart();
-      this.drawPressureChart();
+      if (!this.shouldUseDualCharts) return;
+      const [station1, station2] = this.selectedValves.map(v => v.valveName);
+
+      if (this.temperature_chart) {
+        const option1 = this.getBaseChartOption(station1);
+        this.temperature_chart.setOption(option1, true);
+      }
+      
+      if (this.pressure_chart) {
+        const option2 = this.getBaseChartOption(station2);
+        this.pressure_chart.setOption(option2, true);
+      }
     },
 
-    drawTemperatureChart() {
-      if (!this.temperature_chart || !this.showTemperature) return;
-
-      try {
+    // 统一的图表配置生成器
+    getBaseChartOption(stationName) {
+        const stationData = this.getCombinedStationData(stationName);
         const series = [];
-        
-        this.selectedValves.forEach((valve, index) => {
-          const color = this.stationColors[index % this.stationColors.length];
-          const stationData = this.multiStationData.get(valve.valveName + '_temperature');
-          
-          if (stationData) {
-            series.push({
-              name: `${valve.valveName}实际`,
-              type: 'line',
-              data: stationData.actual,
-              smooth: true,
-              showSymbol: false,
-              lineStyle: {
-                color: color,
-                width: 3,
-                type: 'solid',
-                shadowColor: `${color}40`,
-                shadowBlur: 3
-              },
-              itemStyle: {
-                color: color
-              }
-            });
 
-            series.push({
-              name: `${valve.valveName}预测`,
-              type: 'line',
-              data: stationData.prediction,
-              smooth: true,
-              showSymbol: false,
-              lineStyle: {
-                color: color,
-                width: 2,
-                type: 'dashed',
-                dashArray: [8, 4],
-                shadowColor: `${color}40`,
-                shadowBlur: 3
-              },
-              itemStyle: {
-                color: color
-              }
-            });
-          }
-        });
+      if (this.showTemperature) {
+            series.push({ name: '实际温度', type: 'line', yAxisIndex: 1, data: stationData.temperature.actual, ...this.getSeriesStyle('actual_temp') });
+            series.push({ name: '预测温度', type: 'line', yAxisIndex: 1, data: stationData.temperature.prediction, ...this.getSeriesStyle('prediction_temp') });
+      }
+      if (this.showPressure) {
+            series.push({ name: '实际压力', type: 'line', yAxisIndex: 0, data: stationData.pressure.actual, ...this.getSeriesStyle('actual_pressure') });
+            series.push({ name: '预测压力', type: 'line', yAxisIndex: 0, data: stationData.pressure.prediction, ...this.getSeriesStyle('prediction_pressure') });
+      }
 
-        const option = {
-          backgroundColor: 'transparent',
-          title: {
-            left: 'center',
-            textStyle: {
-              color: '#66dffb',
-              fontSize: 14,
-              fontWeight: 'normal'
-            }
-          },
-          tooltip: {
-            trigger: 'axis',
-            backgroundColor: 'rgba(0, 21, 41, 0.95)',
-            borderColor: '#66dffb',
-            borderWidth: 1,
-            textStyle: {
-              color: '#ffffff',
-              fontSize: 12
-            },
-            axisPointer: {
-              type: 'cross',
-              crossStyle: {
-                color: 'rgba(102, 223, 251, 0.6)'
-              }
-            }
-          },
-          legend: {
-            orient: 'horizontal',
-            top: 25,
-            textStyle: {
-              color: '#66dffb',
-              fontSize: 11
-            },
-            itemGap: 15,
-            itemWidth: 20,
-            itemHeight: 12
-          },
-          grid: {
-            left: '10%',
-            right: '8%',
-            bottom: '25%',
-            top: '30%',
-            containLabel: true,
-            borderColor: 'rgba(102, 223, 251, 0.1)'
-          },
-          xAxis: {
-            type: 'time',
-            axisLine: {
-              lineStyle: {
-                color: 'rgba(102, 223, 251, 0.6)',
-                width: 1
-              }
-            },
-            axisLabel: {
-              color: 'rgba(102, 223, 251, 0.8)',
-              fontSize: 10,
-              formatter: function (value) {
-                const date = new Date(value);
-                return date.getHours() + ':' + (date.getMinutes() < 10 ? '0' : '') + date.getMinutes();
-              }
-            },
-            axisTick: {
-              show: false
-            },
-            splitLine: {
-              show: false
-            }
-          },
-          yAxis: {
-            type: 'value',
-            name: '温度 (℃)',
-            nameTextStyle: {
-              color: '#66dffb',
-              fontSize: 11
-            },
-            axisLine: {
-              lineStyle: {
-                color: 'rgba(102, 223, 251, 0.6)',
-                width: 1
-              }
-            },
-            axisLabel: {
-              color: 'rgba(102, 223, 251, 0.8)',
-              fontSize: 10
-            },
-            splitLine: {
-              lineStyle: {
-                color: 'rgba(102, 223, 251, 0.15)',
-                type: 'dashed'
-              }
-            },
-            axisTick: {
-              show: false
-            }
-          },
-          dataZoom: [
-            // X轴滑动条
-            {
-              type: 'slider',
-              show: true,
-              xAxisIndex: 0,
-              height: 20,
-              bottom: 0,
-              borderColor: 'rgba(102, 223, 251, 0.3)',
-              textStyle: {
-                color: '#66dffb'
-              },
-              handleStyle: {
-                color: '#66dffb'
-              },
-              dataBackground: {
-                areaStyle: {
-                  color: 'rgba(102, 223, 251, 0.2)'
-                }
-              },
-              fillerColor: 'rgba(102, 223, 251, 0.3)',
-              start: 0,
-              end: 100
-            },
-            // X轴内部缩放
-            {
-              type: 'inside',
-              xAxisIndex: 0
-            },
-            // Y轴滑动条
-            {
-              type: 'slider',
-              show: true,
-              yAxisIndex: 0,
-              width: 20,
-              left: 0,
-              borderColor: 'rgba(102, 223, 251, 0.3)',
-              textStyle: {
-                color: '#66dffb'
-              },
-              handleStyle: {
-                color: '#66dffb'
-              },
-              dataBackground: {
-                areaStyle: {
-                  color: 'rgba(102, 223, 251, 0.2)'
-                }
-              },
-              fillerColor: 'rgba(102, 223, 251, 0.3)'
-            },
-            // Y轴内部缩放
-            {
-              type: 'inside',
-              yAxisIndex: 0
-            }
-          ],
+      return {
+            backgroundColor: 'transparent',
+            title: { text: this.shouldUseDualCharts ? stationName : null, left: 'center', textStyle: { color: '#66dffb', fontSize: 14 } },
+        tooltip: { trigger: 'axis', ...this.getBaseTooltipStyle() },
+        legend: { top: 25, textStyle: { color: '#66dffb' } },
+            grid: { left: '15%', right: '8%', bottom: '15%', top: '30%', containLabel: true },
+        xAxis: { type: 'time', ...this.getBaseAxisStyle() },
+            yAxis: this.getYAxisConfig(),
+        dataZoom: this.getBaseDataZoom(),
           series: series
         };
-
-        this.temperature_chart.setOption(option);
-        console.log('温度图表绘制完成');
-      } catch (error) {
-        console.error('绘制温度图表时出错:', error);
-      }
     },
 
-    drawPressureChart() {
-      if (!this.pressure_chart || !this.showPressure) return;
-
-      try {
-        const series = [];
-        
-        this.selectedValves.forEach((valve, index) => {
-          const color = this.stationColors[index % this.stationColors.length];
-          const stationData = this.multiStationData.get(valve.valveName + '_pressure');
-          
-          if (stationData) {
-            series.push({
-              name: `${valve.valveName}实际`,
-              type: 'line',
-              data: stationData.actual,
-              smooth: true,
-              showSymbol: false,
-              lineStyle: {
-                color: color,
-                width: 3,
-                type: 'solid',
-                shadowColor: `${color}40`,
-                shadowBlur: 3
-              },
-              itemStyle: {
-                color: color
-              }
-            });
-
-            series.push({
-              name: `${valve.valveName}预测`,
-              type: 'line',
-              data: stationData.prediction,
-              smooth: true,
-              showSymbol: false,
-              lineStyle: {
-                color: color,
-                width: 2,
-                type: 'dashed',
-                dashArray: [8, 4],
-                shadowColor: `${color}40`,
-                shadowBlur: 3
-              },
-              itemStyle: {
-                color: color
-              }
-            });
+    // 辅助函数，提供基础样式配置
+    getSeriesStyle(type) {
+      const styles = {
+        actual_temp: { color: '#ffd166', width: 3, type: 'solid' },
+        prediction_temp: { color: '#ffd166', width: 2, type: 'dashed' },
+        actual_pressure: { color: '#ff6b6b', width: 3, type: 'solid' },
+        prediction_pressure: { color: '#ff6b6b', width: 2, type: 'dashed' }
+      };
+      const s = styles[type];
+      
+      // 优化折线图的视觉效果
+      const commonOptions = {
+        smooth: true,
+        showSymbol: false, // 所有线条都不显示数据点
+        triggerLineEvent: true, // 确保无符号的线也能触发事件
+        symbolSize: 0, // 确保所有数据点大小为0
+          lineStyle: {
+          color: s.color, 
+          width: s.width, 
+          type: s.type, 
+          shadowColor: `${s.color}40`, 
+          shadowBlur: 3 
+        },
+        itemStyle: { 
+          color: s.color,
+          borderWidth: 0, // 不显示边框
+          borderColor: '#fff',
+          shadowBlur: 0 // 不显示阴影
+        },
+        emphasis: {
+          scale: true,
+          itemStyle: {
+            borderWidth: 2
           }
-        });
+        },
+        // 增强采样密度，确保曲线更平滑
+        sampling: 'average'
+      };
+      
+      return commonOptions;
+    },
 
-        const option = {
-          backgroundColor: 'transparent',
-          title: {
-            left: 'center',
-            textStyle: {
-              color: '#52c41a',
-              fontSize: 14,
-              fontWeight: 'normal'
-            }
-          },
-          tooltip: {
-            trigger: 'axis',
-            backgroundColor: 'rgba(0, 21, 41, 0.95)',
-            borderColor: '#52c41a',
-            borderWidth: 1,
-            textStyle: {
-              color: '#ffffff',
-              fontSize: 12
-            },
-            axisPointer: {
-              type: 'cross',
-              crossStyle: {
-                color: 'rgba(82, 196, 26, 0.6)'
-              }
-            }
-          },
-          legend: {
-            orient: 'horizontal',
-            top: 25,
-            textStyle: {
-              color: '#52c41a',
-              fontSize: 11
-            },
-            itemGap: 15,
-            itemWidth: 20,
-            itemHeight: 12
-          },
-          grid: {
-            left: '10%',
-            right: '8%',
-            bottom: '25%',
-            top: '30%',
-            containLabel: true,
-            borderColor: 'rgba(82, 196, 26, 0.1)'
-          },
-          xAxis: {
-            type: 'time',
-            axisLine: {
-              lineStyle: {
-                color: 'rgba(82, 196, 26, 0.6)',
-                width: 1
-              }
-            },
-            axisLabel: {
-              color: 'rgba(82, 196, 26, 0.8)',
-              fontSize: 10,
-              formatter: function (value) {
+    getYAxisConfig() {
+      const yAxis = [];
+        if (this.showPressure) {
+        yAxis.push({
+                min: 0, max: 10, type: 'value', name: '压力 (MPa)', position: 'left',
+          nameTextStyle: { color: '#ff6b6b', fontSize: 12 },
+          axisLine: { show: true, lineStyle: { color: '#ff6b6b', width: 2 } },
+          axisLabel: { color: '#ff6b6b', fontSize: 11, formatter: '{value}MPa' },
+                splitLine: { show: false }, axisTick: { show: false }
+        });
+        }
+        if (this.showTemperature) {
+        yAxis.push({
+                min: -20, max: 40, type: 'value', name: '温度 (℃)', position: 'right',
+          nameTextStyle: { color: '#ffd166', fontSize: 12 },
+          axisLine: { show: true, lineStyle: { color: '#ffd166', width: 2 } },
+          axisLabel: { color: '#ffd166', fontSize: 11, formatter: '{value}℃' },
+                splitLine: { show: false }, axisTick: { show: false }
+        });
+      }
+      return yAxis;
+    },
+
+    getBaseTooltipStyle() {
+      return {
+        backgroundColor: 'rgba(0, 21, 41, 0.95)', borderColor: '#66dffb', borderWidth: 1,
+        textStyle: { color: '#ffffff', fontSize: 12 },
+        formatter: (params) => {
+            // 'params' 现在可能是一个对象或数组，需要统一处理
+            const paramArray = Array.isArray(params) ? params : [params];
+            if (paramArray.length === 0) return '';
+
+            let result = '';
+            // 使用第一个数据点的时间作为标题
+            const timeValue = paramArray[0].value[0];
+            const time = new Date(timeValue);
+            
+            result += `<div style="margin-bottom: 5px; font-weight: bold;">${time.toLocaleTimeString()}</div>`;
+
+            paramArray.forEach(param => {
+                const color = param.color;
+                const unit = param.seriesName.includes('温度') ? '℃' : 'MPa';
+                const value = param.value[1];
+
+                result += `<div style="display: flex; align-items: center; margin: 2px 0;">
+                  <span style="display: inline-block; width: 10px; height: 10px; background-color: ${color}; border-radius: 50%;"></span>
+                  <span style="flex: 1; margin-left: 8px;">${param.seriesName}: </span>
+                  <span style="font-weight: bold; color: ${color};">${value.toFixed(3)} ${unit}</span>
+                </div>`;
+            });
+            return result;
+        }
+      };
+    },
+
+    getBaseAxisStyle() {
+      return {
+        axisLine: { lineStyle: { color: 'rgba(102, 223, 251, 0.6)', width: 1 } },
+        axisLabel: { 
+            color: 'rgba(102, 223, 251, 0.8)', 
+            fontSize: 11, 
+            formatter: function(value) {
                 const date = new Date(value);
-                return date.getHours() + ':' + (date.getMinutes() < 10 ? '0' : '') + date.getMinutes();
-              }
-            },
-            axisTick: {
-              show: false
-            },
-            splitLine: {
-              show: false
+        
+                // Format date to HH:MM:SS
+                const hours = date.getHours().toString().padStart(2, '0');
+                const minutes = date.getMinutes().toString().padStart(2, '0');
+                const seconds = date.getSeconds().toString().padStart(2, '0');
+                
+                return `${hours}:${minutes}:${seconds}`;
             }
-          },
-          yAxis: {
-            type: 'value',
-            name: '压力 (MPa)',
-            nameTextStyle: {
-              color: '#52c41a',
-              fontSize: 11
-            },
-            axisLine: {
-              lineStyle: {
-                color: 'rgba(82, 196, 26, 0.6)',
-                width: 1
-              }
-            },
-            axisLabel: {
-              color: 'rgba(82, 196, 26, 0.8)',
-              fontSize: 10
-            },
-            splitLine: {
-              lineStyle: {
-                color: 'rgba(82, 196, 26, 0.15)',
-                type: 'dashed'
-              }
-            },
-            axisTick: {
-              show: false
-            }
-          },
-          dataZoom: [
-            // X轴滑动条
-            {
-              type: 'slider',
-              show: true,
-              xAxisIndex: 0,
-              height: 20,
-              bottom: 0,
-              borderColor: 'rgba(82, 196, 26, 0.3)',
-              textStyle: {
-                color: '#52c41a'
-              },
-              handleStyle: {
-                color: '#52c41a'
-              },
-              dataBackground: {
-                areaStyle: {
-                  color: 'rgba(82, 196, 26, 0.2)'
-                }
-              },
-              fillerColor: 'rgba(82, 196, 26, 0.3)',
-              start: 0,
-              end: 100
-            },
-            // X轴内部缩放
-            {
-              type: 'inside',
-              xAxisIndex: 0
-            },
-            // Y轴滑动条
-            {
-              type: 'slider',
-              show: true,
-              yAxisIndex: 0,
-              width: 20,
-              left: 0,
-              borderColor: 'rgba(82, 196, 26, 0.3)',
-              textStyle: {
-                color: '#52c41a'
-              },
-              handleStyle: {
-                color: '#52c41a'
-              },
-              dataBackground: {
-                areaStyle: {
-                  color: 'rgba(82, 196, 26, 0.2)'
-                }
-              },
-              fillerColor: 'rgba(82, 196, 26, 0.3)'
-            },
-            // Y轴内部缩放
-            {
-              type: 'inside',
-              yAxisIndex: 0
-            }
-          ],
-          series: series
-        };
-
-        this.pressure_chart.setOption(option);
-        console.log('压力图表绘制完成');
-      } catch (error) {
-        console.error('绘制压力图表时出错:', error);
-      }
+        },
+        axisTick: { show: false }, 
+        splitLine: { show: false },
+        min: 'dataMin',
+        max: 'dataMax'
+      };
     },
 
-    generateInitialData() {
-      if (this.selectedValves.length > 1) {
-        // 多站点模式
-        this.generateMultiStationData();
-      } else if (this.selectedValves.length === 1) {
-        // 单站点模式，使用选中站点的数据
-        this.generateSingleStationData();
-      } else {
-        // 默认模式，显示黄埔站数据
-        this.generateDefaultStationData();
-      }
+    getBaseDataZoom() {
+      return [
+        // X轴缩放
+        { type: 'slider', show: true, xAxisIndex: 0, height: 20, bottom: 0, ...this.getDataZoomStyle() },
+        { type: 'inside', xAxisIndex: 0 },
+        // Y轴缩放
+        { type: 'slider', show: true, yAxisIndex: 0, width: 20, right: 0, ...this.getDataZoomStyle() },
+        { type: 'inside', yAxisIndex: 0 }
+      ];
     },
     
-    generateDefaultStationData() {
-      // 模拟黄埔站的默认数据
-      const baseTime = new Date();
-      const futurePoints = 10; // 未来预测点数量改为10，因为每次更新都会添加新的预测点
-      const predictionStepInterval = 5000; // 5秒为一步
-      const predictionStepsAhead = 10; // 预测领先10步
-      const predictionTimeAhead = predictionStepInterval * predictionStepsAhead; // 50秒
-      
-      // 黄埔站的基准值
-      const tempBaseValue = 88; // 88℃
-      const pressureBaseValue = 2.6; // 2.6MPa
-      const tempFluctuationRange = 2.0;
-      const pressureFluctuationRange = 0.15;
-      
-      // 生成历史数据
-      this.actualTemperatureData = [];
-      this.actualPressureData = [];
-      
-      for (let i = 30; i >= 1; i--) {
-        const time = new Date(baseTime.getTime() - i * predictionStepInterval); // 改用5秒间隔
-        
-        // 生成温度数据
-        const tempRandomFactor = Math.random() * tempFluctuationRange - (tempFluctuationRange / 2);
-        let tempValue = tempBaseValue + tempRandomFactor;
-        tempValue = Math.max(80, Math.min(95, tempValue));
-        
-        this.actualTemperatureData.push({
-          name: time.toString(),
-          value: [time.getTime(), tempValue]
-        });
-        
-        // 生成压力数据
-        const pressureRandomFactor = Math.random() * pressureFluctuationRange - (pressureFluctuationRange / 2);
-        let pressureValue = pressureBaseValue + pressureRandomFactor;
-        pressureValue = Math.max(0.2, Math.min(3.5, pressureValue));
-        
-        this.actualPressureData.push({
-          name: time.toString(),
-          value: [time.getTime(), pressureValue]
-        });
-      }
-      
-      // 生成预测数据 - 基于真实数据，但时间领先50秒（10步）
-      this.predictionTemperatureData = [];
-      this.predictionPressureData = [];
-      
-      // 为每个历史真实数据点生成对应的预测数据点（时间领先50秒）
-      for (let i = 0; i < this.actualTemperatureData.length; i++) {
-        const actualTime = this.actualTemperatureData[i].value[0];
-        const actualTempValue = this.actualTemperatureData[i].value[1];
-        const actualPressureValue = this.actualPressureData[i].value[1];
-        
-        // 生成温度预测数据
-        const tempPredictionTime = actualTime + predictionTimeAhead;
-        const tempVariance = 0.3;
-        const tempSystematicBias = 0.2;
-        const tempRandomOffset = (Math.random() * tempVariance - tempVariance/2);
-        const predictedTempValue = actualTempValue + tempSystematicBias + tempRandomOffset;
-        
-        this.predictionTemperatureData.push({
-          name: new Date(tempPredictionTime).toString(),
-          value: [
-            tempPredictionTime,
-            Math.max(80, Math.min(95, predictedTempValue))
-          ]
-        });
-        
-        // 生成压力预测数据
-        const pressurePredictionTime = actualTime + predictionTimeAhead;
-        const pressureVariance = 0.015;
-        const pressureSystematicBias = -0.01;
-        const pressureRandomOffset = (Math.random() * pressureVariance - pressureVariance/2);
-        const predictedPressureValue = actualPressureValue + pressureSystematicBias + pressureRandomOffset;
-        
-        this.predictionPressureData.push({
-          name: new Date(pressurePredictionTime).toString(),
-          value: [
-            pressurePredictionTime,
-            Math.max(0.2, Math.min(3.5, predictedPressureValue))
-          ]
-        });
-      }
-      
-      // 添加额外的未来预测点（基于最后的真实数据点）
-      const lastActualTime = this.actualTemperatureData[this.actualTemperatureData.length - 1].value[0];
-      const lastActualTempValue = this.actualTemperatureData[this.actualTemperatureData.length - 1].value[1];
-      const lastActualPressureValue = this.actualPressureData[this.actualPressureData.length - 1].value[1];
-      
-      // 生成温度未来预测点
-      for (let i = 1; i <= futurePoints; i++) {
-        const futureActualTime = lastActualTime + i * predictionStepInterval;
-        const futurePredictionTime = futureActualTime + predictionTimeAhead;
-        
-        let predictedValue;
-        if (i === 1) {
-          // 第一个未来点基于最后一个实际值
-          const variance = 0.2;
-          const systematicBias = 0.2;
-          predictedValue = lastActualTempValue + systematicBias + (Math.random() * variance - variance/2);
-        } else {
-          // 后续点基于前一个预测点
-          const prevValue = this.predictionTemperatureData[this.predictionTemperatureData.length - 1].value[1];
-          const variance = 0.15;
-          const trendFactor = (i / futurePoints) * 0.1; // 轻微上升趋势
-          
-          predictedValue = prevValue + (Math.random() * variance - variance/2) + trendFactor;
+    getDataZoomStyle() {
+        return {
+            borderColor: 'rgba(102, 223, 251, 0.3)', textStyle: { color: '#66dffb' },
+            handleStyle: { color: '#66dffb' }, dataBackground: { areaStyle: { color: 'rgba(102, 223, 251, 0.2)' } },
+            fillerColor: 'rgba(102, 223, 251, 0.3)'
         }
-        
-        predictedValue = Math.max(80, Math.min(95, predictedValue));
-        
-        this.predictionTemperatureData.push({
-          name: new Date(futurePredictionTime).toString(),
-          value: [futurePredictionTime, predictedValue]
-        });
-      }
-      
-      // 生成压力未来预测点
-      for (let i = 1; i <= futurePoints; i++) {
-        const futureActualTime = lastActualTime + i * predictionStepInterval;
-        const futurePredictionTime = futureActualTime + predictionTimeAhead;
-        
-        let predictedValue;
-        if (i === 1) {
-          // 第一个未来点基于最后一个实际值
-          const variance = 0.01;
-          const systematicBias = -0.01;
-          predictedValue = lastActualPressureValue + systematicBias + (Math.random() * variance - variance/2);
-        } else {
-          // 后续点基于前一个预测点
-          const prevValue = this.predictionPressureData[this.predictionPressureData.length - 1].value[1];
-          const variance = 0.008;
-          const trendFactor = (i / futurePoints) * -0.01; // 轻微下降趋势
-          
-          predictedValue = prevValue + (Math.random() * variance - variance/2) + trendFactor;
-        }
-        
-        predictedValue = Math.max(0.2, Math.min(3.5, predictedValue));
-        
-        this.predictionPressureData.push({
-          name: new Date(futurePredictionTime).toString(),
-          value: [futurePredictionTime, predictedValue]
-        });
-      }
-    },
-    
-    generateSingleStationData() {
-      // 基础时间和预测周期设置
-      const baseTime = new Date();
-      const futurePoints = 10; // 未来预测点数量改为10
-      const predictionStepInterval = 5000; // 5秒为一步
-      const predictionStepsAhead = 10; // 预测领先10步
-      const predictionTimeAhead = predictionStepInterval * predictionStepsAhead; // 50秒
-      
-      // 根据选中的站点确定数据基准值和波动范围
-      let tempBaseValue = 87.8; // 基准温度87.8℃
-      let tempFluctuationRange = 1.4; // 波动范围1.4℃ (86.4-89.2)
-      let pressureBaseValue = 3.125; // 基准压力3.125 MPa
-      let pressureFluctuationRange = 0.05; // 波动范围0.05 MPa (3.10-3.15)
-      
-      if (this.selectedValves.length > 0) {
-        const valve = this.selectedValves[0];
-        
-        // 使用站点的实际数据如果可用
-        if (valve.stationData) {
-          tempBaseValue = valve.stationData.inletTemp || valve.stationData.outletTemp || 87.8;
-          pressureBaseValue = valve.stationData.inletPressure || valve.stationData.outletPressure || 3.125;
-        } else {
-          const valveNumber = valve.valveIndex || parseInt(valve.valveName.replace(/[^0-9]/g, '')) || 0;
-          // 根据阀门编号调整基准值
-          tempBaseValue = 87.8 + (valveNumber * 0.05);
-          pressureBaseValue = 3.125 + (valveNumber * 0.002);
-        }
-      }
-      
-      // 生成历史数据
-      this.actualTemperatureData = [];
-      this.actualPressureData = [];
-      
-      for (let i = 30; i >= 1; i--) {
-        const time = new Date(baseTime.getTime() - i * predictionStepInterval); // 改用5秒间隔
-        
-        // 生成温度数据
-        const tempRandomFactor = Math.random() * tempFluctuationRange - (tempFluctuationRange / 2);
-        let tempValue = tempBaseValue + tempRandomFactor;
-        tempValue = Math.max(80, Math.min(95, tempValue));
-        
-        this.actualTemperatureData.push({
-          name: time.toString(),
-          value: [time.getTime(), tempValue]
-        });
-        
-        // 生成压力数据
-        const pressureRandomFactor = Math.random() * pressureFluctuationRange - (pressureFluctuationRange / 2);
-        let pressureValue = pressureBaseValue + pressureRandomFactor;
-        pressureValue = Math.max(0.2, Math.min(3.5, pressureValue));
-        
-        this.actualPressureData.push({
-          name: time.toString(),
-          value: [time.getTime(), pressureValue]
-        });
-      }
-      
-      // 生成预测数据 - 基于真实数据，但时间领先50秒（10步）
-      this.predictionTemperatureData = [];
-      this.predictionPressureData = [];
-      
-      // 为每个历史真实数据点生成对应的预测数据点（时间领先50秒）
-      for (let i = 0; i < this.actualTemperatureData.length; i++) {
-        const actualTime = this.actualTemperatureData[i].value[0];
-        const actualTempValue = this.actualTemperatureData[i].value[1];
-        const actualPressureValue = this.actualPressureData[i].value[1];
-        
-        // 生成温度预测数据
-        const tempPredictionTime = actualTime + predictionTimeAhead;
-        const tempVariance = 0.3; // 温度预测数据的波动范围
-        const tempSystematicBias = 0.2; // 预测值整体偏高
-        const tempRandomOffset = (Math.random() * tempVariance - tempVariance/2);
-        const predictedTempValue = actualTempValue + tempSystematicBias + tempRandomOffset;
-        
-        this.predictionTemperatureData.push({
-          name: new Date(tempPredictionTime).toString(),
-          value: [
-            tempPredictionTime,
-            Math.max(80, Math.min(95, predictedTempValue))
-          ]
-        });
-        
-        // 生成压力预测数据
-        const pressurePredictionTime = actualTime + predictionTimeAhead;
-        const pressureVariance = 0.015; // 压力预测数据的波动范围
-        const pressureSystematicBias = -0.01; // 预测值整体偏低
-        const pressureRandomOffset = (Math.random() * pressureVariance - pressureVariance/2);
-        const predictedPressureValue = actualPressureValue + pressureSystematicBias + pressureRandomOffset;
-        
-        this.predictionPressureData.push({
-          name: new Date(pressurePredictionTime).toString(),
-          value: [
-            pressurePredictionTime,
-            Math.max(0.2, Math.min(3.5, predictedPressureValue))
-          ]
-        });
-      }
-      
-      // 添加额外的未来预测点（基于最后的真实数据点）
-      const lastActualTime = this.actualTemperatureData[this.actualTemperatureData.length - 1].value[0];
-      const lastActualTempValue = this.actualTemperatureData[this.actualTemperatureData.length - 1].value[1];
-      const lastActualPressureValue = this.actualPressureData[this.actualPressureData.length - 1].value[1];
-      
-      // 选择阀门后，未来趋势会有特定变化
-      let trendDirection = 0;
-      if (this.selectedValves.length > 0) {
-        const valve = this.selectedValves[0];
-        const valveNumber = valve.valveIndex || parseInt(valve.valveName.replace(/[^0-9]/g, '')) || 0;
-        
-        // 根据阀门编号决定趋势（奇数上升，偶数下降）
-        trendDirection = (valveNumber % 2 === 0) ? -1 : 1;
-        
-        // 特定阀门的特殊趋势
-        if (valveNumber === 3 || valveNumber === 7) {
-          trendDirection *= 2; // 更强的趋势
-        }
-      }
-      
-      // 生成温度未来预测点
-      for (let i = 1; i <= futurePoints; i++) {
-        const futureActualTime = lastActualTime + i * predictionStepInterval;
-        const futurePredictionTime = futureActualTime + predictionTimeAhead;
-        
-        let predictedValue;
-        if (i === 1) {
-          // 第一个未来点基于最后一个实际值，但添加明显的预测偏差
-          const variance = 0.2;
-          const systematicBias = 0.25; // 预测温度整体偏高
-          predictedValue = lastActualTempValue + systematicBias + (Math.random() * variance - variance/2);
-        } else {
-          // 后续点基于前一个预测点，并添加趋势
-          const prevValue = this.predictionTemperatureData[this.predictionTemperatureData.length - 1].value[1];
-          const variance = 0.1;
-          const trendFactor = (i / futurePoints) * 0.2 * trendDirection; // 增强趋势因子
-          
-          predictedValue = prevValue + (Math.random() * variance - variance/2) + trendFactor;
-        }
-        
-        // 确保预测值在指定范围内
-        predictedValue = Math.max(80, Math.min(95, predictedValue));
-        
-        this.predictionTemperatureData.push({
-          name: new Date(futurePredictionTime).toString(),
-          value: [futurePredictionTime, predictedValue]
-        });
-      }
-      
-      // 生成压力未来预测点
-      for (let i = 1; i <= futurePoints; i++) {
-        const futureActualTime = lastActualTime + i * predictionStepInterval;
-        const futurePredictionTime = futureActualTime + predictionTimeAhead;
-        
-        let predictedValue;
-        if (i === 1) {
-          // 第一个未来点基于最后一个实际值，但添加明显的预测偏差
-          const variance = 0.01;
-          const systematicBias = -0.015; // 预测压力整体偏低
-          predictedValue = lastActualPressureValue + systematicBias + (Math.random() * variance - variance/2);
-        } else {
-          // 后续点基于前一个预测点，并添加趋势
-          const prevValue = this.predictionPressureData[this.predictionPressureData.length - 1].value[1];
-          const variance = 0.008;
-          const trendFactor = (i / futurePoints) * 0.02 * trendDirection; // 增强趋势因子
-          
-          predictedValue = prevValue + (Math.random() * variance - variance/2) + trendFactor;
-        }
-        
-        // 确保预测值在指定范围内
-        predictedValue = Math.max(0.2, Math.min(3.5, predictedValue));
-        
-        this.predictionPressureData.push({
-          name: new Date(futurePredictionTime).toString(),
-          value: [futurePredictionTime, predictedValue]
-        });
-      }
-    },
-
-    generateMultiStationData() {
-      const baseTime = new Date();
-      const historyPoints = 30;
-      const futurePoints = 10; // 改为10个未来预测点
-      const predictionStepInterval = 5000; // 5秒为一步
-      const predictionStepsAhead = 10; // 预测领先10步
-      const predictionTimeAhead = predictionStepInterval * predictionStepsAhead; // 50秒
-      
-      // 清空现有数据
-      this.multiStationData.clear();
-      
-      this.selectedValves.forEach((valve, index) => {
-        // 为每个站点设置不同的基准值，确保显著差异
-        let tempBase = 88;  // 起始温度
-        let pressureBase = 2.6;  // 起始压力
-        
-        // 根据站点类型和索引设置不同的基准值
-        if (valve.stationType === 'startStation') {
-          // 黄埔站
-          tempBase = 88;
-          pressureBase = 2.6;
-        } else if (valve.stationType === 'endStation') {
-          // 东莞站
-          tempBase = 85;
-          pressureBase = 0.8;
-        } else if (valve.stationType === 'valve') {
-          // 十字窖
-          if (valve.valveIndex === 1) {
-            tempBase = 87.5;
-            pressureBase = 2.2;
-          } else if (valve.valveIndex === 2) {
-            tempBase = 86.5;
-            pressureBase = 1.8;
-          } else {
-            tempBase = 86 + index * 0.8;
-            pressureBase = 2.0 - index * 0.3;
-          }
-        } else {
-          // 其他情况，给每个站点不同的基准值
-          tempBase = 85 + index * 1.5;  // 85, 86.5, 88, 89.5...
-          pressureBase = 2.8 - index * 0.4;  // 2.8, 2.4, 2.0, 1.6...
-        }
-        
-        // 确保压力在合理范围内
-        pressureBase = Math.max(0.5, Math.min(3.0, pressureBase));
-        
-        // 为温度和压力分别生成数据
-        const temperatureData = {
-          actual: [],
-          prediction: []
-        };
-        
-        const pressureData = {
-          actual: [],
-          prediction: []
-        };
-        
-        // 生成历史数据
-        for (let i = historyPoints; i >= 1; i--) {
-          const time = baseTime.getTime() - i * predictionStepInterval; // 改用5秒间隔
-          
-          // 温度数据 - 增加变化幅度
-          const tempVariation = (Math.random() - 0.5) * 4; // ±2度变化
-          const cyclicalTemp = Math.sin((i / historyPoints) * Math.PI * 2) * 1.5; // 周期性变化
-          const tempValue = tempBase + tempVariation + cyclicalTemp;
-          
-          temperatureData.actual.push({
-            name: new Date(time).toString(),
-            value: [time, Math.max(80, Math.min(95, tempValue))]
-          });
-          
-          // 温度预测数据（基于真实值，时间领先50秒）
-          const tempPredictionTime = time + predictionTimeAhead;
-          const tempPredictBias = (Math.random() - 0.3) * 1.5; // 稍微偏高的预测
-          const tempPrediction = tempValue + tempPredictBias;
-          temperatureData.prediction.push({
-            name: new Date(tempPredictionTime).toString(),
-            value: [tempPredictionTime, Math.max(80, Math.min(95, tempPrediction))]
-          });
-          
-          // 压力数据 - 增加变化幅度
-          const pressureVariation = (Math.random() - 0.5) * 0.6; // ±0.3 MPa变化
-          const cyclicalPressure = Math.cos((i / historyPoints) * Math.PI * 1.5) * 0.2; // 周期性变化
-          const pressureValue = pressureBase + pressureVariation + cyclicalPressure;
-          
-          pressureData.actual.push({
-            name: new Date(time).toString(),
-            value: [time, Math.max(0.2, Math.min(3.5, pressureValue))]
-          });
-          
-          // 压力预测数据（基于真实值，时间领先50秒）
-          const pressurePredictionTime = time + predictionTimeAhead;
-          const pressurePredictBias = (Math.random() - 0.4) * 0.2; // 稍微偏低的预测
-          const pressurePrediction = pressureValue + pressurePredictBias;
-          pressureData.prediction.push({
-            name: new Date(pressurePredictionTime).toString(),
-            value: [pressurePredictionTime, Math.max(0.2, Math.min(3.5, pressurePrediction))]
-          });
-        }
-        
-        // 生成未来预测数据
-        const lastTempActual = temperatureData.actual[temperatureData.actual.length - 1].value[1];
-        const lastPressureActual = pressureData.actual[pressureData.actual.length - 1].value[1];
-        const lastActualTime = temperatureData.actual[temperatureData.actual.length - 1].value[0];
-        
-        for (let i = 1; i <= futurePoints; i++) {
-          const futureActualTime = lastActualTime + i * predictionStepInterval;
-          const futurePredictionTime = futureActualTime + predictionTimeAhead;
-          
-          // 温度未来预测 - 每个站点有不同的趋势
-          const tempTrend = index % 3 === 0 ? -0.05 : (index % 3 === 1 ? 0.05 : 0.02); // 不同的趋势
-          const tempNoise = (Math.random() - 0.5) * 1.2; // 增加噪声
-          const tempFuture = lastTempActual + (tempTrend * i) + tempNoise;
-          
-          temperatureData.prediction.push({
-            name: new Date(futurePredictionTime).toString(),
-            value: [futurePredictionTime, Math.max(80, Math.min(95, tempFuture))]
-          });
-          
-          // 压力未来预测 - 每个站点有不同的趋势
-          const pressureTrend = index % 3 === 0 ? -0.01 : (index % 3 === 1 ? 0.008 : -0.005); // 不同的趋势
-          const pressureNoise = (Math.random() - 0.5) * 0.15; // 增加噪声
-          const pressureFuture = lastPressureActual + (pressureTrend * i) + pressureNoise;
-          
-          pressureData.prediction.push({
-            name: new Date(futurePredictionTime).toString(),
-            value: [futurePredictionTime, Math.max(0.2, Math.min(3.5, pressureFuture))]
-          });
-        }
-        
-        // 存储温度和压力数据
-        this.multiStationData.set(valve.valveName + '_temperature', temperatureData);
-        this.multiStationData.set(valve.valveName + '_pressure', pressureData);
-        
-        console.log(`${valve.valveName} - 温度基准: ${tempBase.toFixed(1)}℃, 压力基准: ${pressureBase.toFixed(2)}MPa`);
-      });
-    },
-
-    startDataUpdates() {
-      if (this.predictionTimer) {
-        clearInterval(this.predictionTimer);
-      }
-      
-      this.predictionTimer = setInterval(() => {
-        this.updateRealtimeData();
-      }, 5000);
-    },
-
-    updateRealtimeData() {
-      const currentTime = Date.now();
-      const predictionStepInterval = 5000; // 5秒为一步
-      const predictionStepsAhead = 10; // 预测领先10步
-      const predictionTimeAhead = predictionStepInterval * predictionStepsAhead; // 50秒
-      
-      if (this.shouldUseDualCharts) {
-        // 多站点模式数据更新
-        this.selectedValves.forEach((valve, index) => {
-          const tempStationData = this.multiStationData.get(valve.valveName + '_temperature');
-          const pressureStationData = this.multiStationData.get(valve.valveName + '_pressure');
-          
-          if (tempStationData) {
-            // 添加新的温度实际数据点
-            const lastTempActual = tempStationData.actual[tempStationData.actual.length - 1];
-            const tempVariation = (Math.random() - 0.5) * 2.0;
-            const tempCyclical = Math.sin((Date.now() + index * 10000) / 50000) * 1.2;
-            const tempTrend = index % 3 === 0 ? -0.05 : (index % 3 === 1 ? 0.05 : 0);
-            const tempSpike = (Math.random() < 0.08) ? (Math.random() - 0.5) * 1.5 : 0;
-            const newTempValue = lastTempActual.value[1] + tempVariation + tempCyclical + tempTrend + tempSpike;
-            
-            tempStationData.actual.push({
-              name: new Date(currentTime).toString(),
-              value: [currentTime, Math.max(80, Math.min(95, newTempValue))]
-            });
-            
-            // 同时生成新的预测数据点（领先10步/50秒）
-            const predictionTime = currentTime + predictionTimeAhead;
-            const tempPredictionVariance = 0.3;
-            const tempSystematicBias = 0.2; // 预测系统性偏高
-            const tempPredictionNoise = (Math.random() - 0.5) * tempPredictionVariance;
-            // 基于当前真实值生成预测值，加入一些趋势预测
-            const tempFutureTrend = tempTrend * 2; // 预测中的趋势可能更明显
-            const predictedTempValue = newTempValue + tempSystematicBias + tempPredictionNoise + tempFutureTrend;
-            
-            tempStationData.prediction.push({
-              name: new Date(predictionTime).toString(),
-              value: [predictionTime, Math.max(80, Math.min(95, predictedTempValue))]
-            });
-            
-            console.log(`${valve.valveName} - 实际温度: ${newTempValue.toFixed(2)}℃ (${new Date(currentTime).toLocaleTimeString()}) | 预测温度: ${predictedTempValue.toFixed(2)}℃ (${new Date(predictionTime).toLocaleTimeString()})`);
-            
-            // 移除旧的数据，保持数组长度
-            if (tempStationData.actual.length > 60) {
-              tempStationData.actual.shift();
-            }
-            if (tempStationData.prediction.length > 70) { // 预测数据稍多一些，因为包含未来点
-              tempStationData.prediction.shift();
-            }
-          }
-          
-          if (pressureStationData) {
-            // 添加新的压力实际数据点
-            const lastPressureActual = pressureStationData.actual[pressureStationData.actual.length - 1];
-            const pressureVariation = (Math.random() - 0.5) * 0.25;
-            const pressureCyclical = Math.cos((Date.now() + index * 15000) / 70000) * 0.12;
-            const pressureTrend = index % 3 === 0 ? -0.008 : (index % 3 === 1 ? 0.006 : -0.003);
-            const pressureSpike = (Math.random() < 0.06) ? (Math.random() - 0.5) * 0.3 : 0;
-            const newPressureValue = lastPressureActual.value[1] + pressureVariation + pressureCyclical + pressureTrend + pressureSpike;
-            
-            pressureStationData.actual.push({
-              name: new Date(currentTime).toString(),
-              value: [currentTime, Math.max(0.2, Math.min(3.5, newPressureValue))]
-            });
-            
-            // 同时生成新的压力预测数据点（领先10步/50秒）
-            const predictionTime = currentTime + predictionTimeAhead;
-            const pressurePredictionVariance = 0.015;
-            const pressureSystematicBias = -0.01; // 预测系统性偏低
-            const pressurePredictionNoise = (Math.random() - 0.5) * pressurePredictionVariance;
-            // 基于当前真实值生成预测值，加入一些趋势预测
-            const pressureFutureTrend = pressureTrend * 1.5; // 预测中的趋势
-            const predictedPressureValue = newPressureValue + pressureSystematicBias + pressurePredictionNoise + pressureFutureTrend;
-            
-            pressureStationData.prediction.push({
-              name: new Date(predictionTime).toString(),
-              value: [predictionTime, Math.max(0.2, Math.min(3.5, predictedPressureValue))]
-            });
-            
-            console.log(`${valve.valveName} - 实际压力: ${newPressureValue.toFixed(3)}MPa (${new Date(currentTime).toLocaleTimeString()}) | 预测压力: ${predictedPressureValue.toFixed(3)}MPa (${new Date(predictionTime).toLocaleTimeString()})`);
-            
-            // 移除旧的数据
-            if (pressureStationData.actual.length > 60) {
-              pressureStationData.actual.shift();
-            }
-            if (pressureStationData.prediction.length > 70) {
-              pressureStationData.prediction.shift();
-            }
-          }
-        });
-        this.drawDualCharts();
-      } else {
-        // 单站点/默认模式数据更新
-        const lastTempActual = this.actualTemperatureData[this.actualTemperatureData.length - 1];
-        const lastPressureActual = this.actualPressureData[this.actualPressureData.length - 1];
-        
-        // 添加新的温度实际数据
-        const tempRandomFactor = (Math.random() - 0.5) * 1.5;
-        const tempCyclical = Math.sin(Date.now() / 60000) * 0.8;
-        const tempTrend = (Math.random() < 0.3) ? (Math.random() - 0.5) * 0.5 : 0;
-        const newTempValue = lastTempActual.value[1] + tempRandomFactor + tempCyclical + tempTrend;
-        
-        this.actualTemperatureData.push({
-          name: new Date(currentTime).toString(),
-          value: [currentTime, Math.max(80, Math.min(95, newTempValue))]
-        });
-        
-        // 同时生成新的温度预测数据点（领先10步/50秒）
-        const tempPredictionTime = currentTime + predictionTimeAhead;
-        const tempPredictionVariance = 0.3;
-        const tempSystematicBias = 0.2; // 预测系统性偏高
-        const tempPredictionNoise = (Math.random() - 0.5) * tempPredictionVariance;
-        // 基于当前真实值生成预测值，可以加入一些智能预测逻辑
-        const tempFutureTrend = tempTrend * 1.8; // 预测中放大趋势
-        const predictedTempValue = newTempValue + tempSystematicBias + tempPredictionNoise + tempFutureTrend;
-        
-        this.predictionTemperatureData.push({
-          name: new Date(tempPredictionTime).toString(),
-          value: [tempPredictionTime, Math.max(80, Math.min(95, predictedTempValue))]
-        });
-        
-        console.log(`数据更新 - 实际温度: ${newTempValue.toFixed(2)}℃ (${new Date(currentTime).toLocaleTimeString()}) | 预测温度: ${predictedTempValue.toFixed(2)}℃ (${new Date(tempPredictionTime).toLocaleTimeString()})`);
-        
-        // 添加新的压力实际数据
-        const pressureRandomFactor = (Math.random() - 0.5) * 0.15;
-        const pressureCyclical = Math.cos(Date.now() / 80000) * 0.08;
-        const pressureTrend = (Math.random() < 0.25) ? (Math.random() - 0.5) * 0.06 : 0;
-        const pressureSpike = (Math.random() < 0.05) ? (Math.random() - 0.5) * 0.2 : 0;
-        const newPressureValue = lastPressureActual.value[1] + pressureRandomFactor + pressureCyclical + pressureTrend + pressureSpike;
-        
-        this.actualPressureData.push({
-          name: new Date(currentTime).toString(),
-          value: [currentTime, Math.max(0.2, Math.min(3.5, newPressureValue))]
-        });
-        
-        // 同时生成新的压力预测数据点（领先10步/50秒）
-        const pressurePredictionTime = currentTime + predictionTimeAhead;
-        const pressurePredictionVariance = 0.015;
-        const pressureSystematicBias = -0.01; // 预测系统性偏低
-        const pressurePredictionNoise = (Math.random() - 0.5) * pressurePredictionVariance;
-        // 基于当前真实值生成预测值
-        const pressureFutureTrend = pressureTrend * 1.5; // 预测中的趋势
-        const predictedPressureValue = newPressureValue + pressureSystematicBias + pressurePredictionNoise + pressureFutureTrend;
-        
-        this.predictionPressureData.push({
-          name: new Date(pressurePredictionTime).toString(),
-          value: [pressurePredictionTime, Math.max(0.2, Math.min(3.5, predictedPressureValue))]
-        });
-        
-        console.log(`数据更新 - 实际压力: ${newPressureValue.toFixed(3)}MPa (${new Date(currentTime).toLocaleTimeString()}) | 预测压力: ${predictedPressureValue.toFixed(3)}MPa (${new Date(pressurePredictionTime).toLocaleTimeString()})`);
-        
-        // 移除旧数据，保持合理的数据量
-        if (this.actualTemperatureData.length > 60) {
-          this.actualTemperatureData.shift();
-        }
-        if (this.actualPressureData.length > 60) {
-          this.actualPressureData.shift();
-        }
-        if (this.predictionTemperatureData.length > 70) { // 预测数据包含更多未来点
-          this.predictionTemperatureData.shift();
-        }
-        if (this.predictionPressureData.length > 70) {
-          this.predictionPressureData.shift();
-        }
-        
-        this.drawPredictionChart();
-      }
-    },
-
-    toggleChartData() {
-      console.log('切换图表显示:', this.displayOptions);
-      
-      // 停止当前的数据更新
-      if (this.predictionTimer) {
-        clearInterval(this.predictionTimer);
-      }
-      
-      // 重新初始化图表
-      this.$nextTick(() => {
-        this.initChart();
-      });
-    },
-
-    handleResize() {
-      if (this.shouldUseDualCharts) {
-        if (this.temperature_chart) this.temperature_chart.resize();
-        if (this.pressure_chart) this.pressure_chart.resize();
-      } else {
-        if (this.prediction_chart) this.prediction_chart.resize();
-      }
     },
 
     getTagType(index) {
-      const types = ['success', 'warning', 'info', 'danger'];
-      return types[index % types.length];
+      return ['success', 'warning', 'info', 'danger'][index % 4];
     },
 
     removeValve(valve) {
@@ -1492,300 +536,279 @@ export default {
     },
 
     toggleTemperature() {
-      if (this.showTemperature) {
-        // 如果当前显示温度，且同时也显示压力，则可以关闭温度
-        // 如果只显示温度，则不允许关闭（至少保留一个选项）
-        if (this.showPressure) {
-          this.displayOptions = this.displayOptions.filter(option => option !== 'temperature');
-        }
-      } else {
-        this.displayOptions.push('temperature');
-      }
-      this.toggleChartData();
+      if (this.showTemperature && !this.showPressure) return; // 至少保留一个
+      this.displayOptions = this.showTemperature 
+        ? this.displayOptions.filter(o => o !== 'temperature') 
+        : [...this.displayOptions, 'temperature'];
+          this.drawCharts();
     },
 
     togglePressure() {
-      if (this.showPressure) {
-        // 如果当前显示压力，且同时也显示温度，则可以关闭压力
-        // 如果只显示压力，则不允许关闭（至少保留一个选项）
-        if (this.showTemperature) {
-          this.displayOptions = this.displayOptions.filter(option => option !== 'pressure');
-        }
-      } else {
-        this.displayOptions.push('pressure');
-      }
-      this.toggleChartData();
+      if (this.showPressure && !this.showTemperature) return; // 至少保留一个
+      this.displayOptions = this.showPressure 
+        ? this.displayOptions.filter(o => o !== 'pressure') 
+        : [...this.displayOptions, 'pressure'];
+      this.drawCharts();
     },
 
-    getSingleChartSeries() {
-      const series = [];
-      const showBothTypes = this.showTemperature && this.showPressure;
-      
-      // 根据显示选项添加温度系列
-      if (this.showTemperature) {
-        series.push({
-          name: '实际温度',
-          type: 'line',
-          yAxisIndex: 0,
-          data: this.actualTemperatureData,
-          smooth: true,
-          showSymbol: false,
-          lineStyle: {
-            color: '#66dffb',
-            width: 3,
-            type: 'solid',
-            shadowColor: 'rgba(102, 223, 251, 0.3)',
-            shadowBlur: 4
-          },
-          itemStyle: {
-            color: '#66dffb'
-          }
-        });
+    testPredictionData() {
+        // 始终为所有站点测试预测数据，不依赖于选中状态
+        const stationsToTest = ['十字窖#1', '十字窖#2', '黄埔', '东莞'];
 
-        series.push({
-          name: '预测温度',
-          type: 'line',
-          yAxisIndex: 0,
-          data: this.predictionTemperatureData,
-          smooth: true,
-          showSymbol: false,
-          lineStyle: {
-            color: '#1890ff',
-            width: 2,
-            type: 'dashed',
-            dashArray: [8, 4],
-            shadowColor: 'rgba(24, 144, 255, 0.3)',
-            shadowBlur: 4
-          },
-          itemStyle: {
-            color: '#1890ff'
-          }
-        });
-      }
-      
-      // 根据显示选项添加压力系列
-      if (this.showPressure) {
-        const pressureYAxisIndex = showBothTypes ? 1 : 0; // 如果同时显示两种数据，压力用右轴；否则用左轴
+        console.log(`🧪 为所有站点 ${stationsToTest.join(', ')} 手动触发下一次预测数据获取...`);
         
-        series.push({
-          name: '实际压力',
-          type: 'line',
-          yAxisIndex: pressureYAxisIndex,
-          data: this.actualPressureData,
-          smooth: true,
-          showSymbol: false,
-          lineStyle: {
-            color: '#52c41a',
-            width: 3,
-            type: 'solid',
-            shadowColor: 'rgba(82, 196, 26, 0.3)',
-            shadowBlur: 4
-          },
-          itemStyle: {
-            color: '#52c41a'
-          }
+        stationsToTest.forEach(stationName => {
+            this.fetchNextPredictionData({ 
+                stationName,
+                timeOffset: 10 * 60 * 1000 // 10分钟的毫秒数，确保预测数据比真实数据晚
+            });
         });
-
-        series.push({
-          name: '预测压力',
-          type: 'line',
-          yAxisIndex: pressureYAxisIndex,
-          data: this.predictionPressureData,
-          smooth: true,
-          showSymbol: false,
-          lineStyle: {
-            color: '#13c2c2',
-            width: 2,
-            type: 'dashed',
-            dashArray: [8, 4],
-            shadowColor: 'rgba(19, 194, 194, 0.3)',
-            shadowBlur: 4
-          },
-          itemStyle: {
-            color: '#13c2c2'
-          }
-        });
-      }
-      
-      return series;
     },
 
-    getSingleChartYAxis() {
-      const yAxis = [];
+    startDataFetching() {
+      this.stopDataFetching(); // 先停止所有定时器
       
-      // 根据显示选项添加Y轴
-      if (this.showTemperature && this.showPressure) {
-        // 同时显示温度和压力时，使用双Y轴
-        yAxis.push({
-          type: 'value',
-          name: '温度 (℃)',
-          position: 'left',
-          nameTextStyle: {
-            color: '#66dffb',
-            fontSize: 12
-          },
-          axisLine: {
-            lineStyle: {
-              color: 'rgba(102, 223, 251, 0.6)',
-              width: 1
-            }
-          },
-          axisLabel: {
-            color: 'rgba(102, 223, 251, 0.8)',
-            fontSize: 11
-          },
-          splitLine: {
-            lineStyle: {
-              color: 'rgba(102, 223, 251, 0.15)',
-              type: 'dashed'
-            }
-          },
-          axisTick: {
-            show: false
+      // 清空所有旧数据
+      this.$store.commit('clearAllStationData');
+        
+      // 启动真实数据轮询
+      this.startRealTimePolling();
+      
+      // 启动预测数据获取
+      this.startPredictionFetching();
+    },
+    
+    // 停止数据获取
+    stopDataFetching() {
+      if (this.realTimeTimer) {
+        clearInterval(this.realTimeTimer);
+        this.realTimeTimer = null;
+      }
+      if (this.predictionTimer) { 
+        clearInterval(this.predictionTimer);
+        this.predictionTimer = null;
+      }
+    },
+
+    // 启动真实数据轮询
+    startRealTimePolling() {
+      console.log('⏰ 启动真实数据轮询...');
+      this.fetchInitialRealTimeData(48); // 1. 先获取48条历史数据
+      
+      // 2. 然后每5秒获取最新的一条数据
+      this.realTimeTimer = setInterval(() => {
+        this.fetchLatestRealTimeData();
+      }, 5000);
+    },
+
+    // 获取初始的48条实时数据
+    async fetchInitialRealTimeData(count) {
+      try {
+        console.log(`📊 正在获取最近 ${count} 条实时数据...`);
+        // 使用fetch API直接请求，跳过token验证
+        console.log('📊 获取历史数据 - 跳过token验证');
+
+        const fetchResponse = await fetch(`http://localhost:3000/hpdg/realtime/recent?count=${count}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+            // 不添加Authorization头，允许无token访问
           }
         });
 
-        yAxis.push({
-          type: 'value',
-          name: '压力 (MPa)',
-          position: 'right',
-          nameTextStyle: {
-            color: '#52c41a',
-            fontSize: 12
-          },
-          axisLine: {
-            lineStyle: {
-              color: 'rgba(82, 196, 26, 0.6)',
-              width: 1
+        console.log('历史数据响应状态:', fetchResponse.status);
+
+        if (!fetchResponse.ok) {
+          const errorText = await fetchResponse.text();
+          console.error('历史数据API请求失败:', fetchResponse.status, errorText);
+          throw new Error(`HTTP ${fetchResponse.status}: ${errorText}`);
+        }
+
+        const response = { data: await fetchResponse.json() };
+
+        if (response.data.success && Array.isArray(response.data.data)) {
+          console.log(`✓ 获取到 ${response.data.data.length} 条历史实时数据`);
+          // 始终为所有站点获取数据，不依赖于选中状态
+          const stations = ['十字窖#1', '十字窖#2', '黄埔', '东莞'];
+
+          stations.forEach(stationName => {
+            const tempData = [];
+            const pressureData = [];
+            
+            response.data.data.forEach(item => {
+              const time = this.parseItemTime(item);
+              if (!time) return; // 如果时间无效，则跳过
+
+              const temp = this.getTemperatureFromData(item, stationName);
+              const pressure = this.getPressureFromData(item, stationName);
+              
+              if (temp !== null) tempData.push([time, temp]);
+              if (pressure !== null) pressureData.push([time, pressure]);
+            });
+            
+            if (tempData.length > 0) {
+              this.$store.commit('updateRealTimeDataBatch', { stationName, dataType: 'temperature', dataArray: tempData });
             }
-          },
-          axisLabel: {
-            color: 'rgba(82, 196, 26, 0.8)',
-            fontSize: 11
-          },
-          splitLine: {
-            show: false
-          },
-          axisTick: {
-            show: false
-          }
-        });
-      } else if (this.showTemperature) {
-        // 只显示温度
-        yAxis.push({
-          type: 'value',
-          name: '温度 (℃)',
-          position: 'left',
-          nameTextStyle: {
-            color: '#66dffb',
-            fontSize: 12
-          },
-          axisLine: {
-            lineStyle: {
-              color: 'rgba(102, 223, 251, 0.6)',
-              width: 1
+            if (pressureData.length > 0) {
+              this.$store.commit('updateRealTimeDataBatch', { stationName, dataType: 'pressure', dataArray: pressureData });
             }
-          },
-          axisLabel: {
-            color: 'rgba(102, 223, 251, 0.8)',
-            fontSize: 11
-          },
-          splitLine: {
-            lineStyle: {
-              color: 'rgba(102, 223, 251, 0.15)',
-              type: 'dashed'
-            }
-          },
-          axisTick: {
-            show: false
-          }
-        });
-      } else if (this.showPressure) {
-        // 只显示压力
-        yAxis.push({
-          type: 'value',
-          name: '压力 (MPa)',
-          position: 'left',
-          nameTextStyle: {
-            color: '#52c41a',
-            fontSize: 12
-          },
-          axisLine: {
-            lineStyle: {
-              color: 'rgba(82, 196, 26, 0.6)',
-              width: 1
-            }
-          },
-          axisLabel: {
-            color: 'rgba(82, 196, 26, 0.8)',
-            fontSize: 11
-          },
-          splitLine: {
-            lineStyle: {
-              color: 'rgba(82, 196, 26, 0.15)',
-              type: 'dashed'
-            }
-          },
-          axisTick: {
-            show: false
-          }
-        });
+            console.log(`站点 ${stationName} 批量更新: ${tempData.length} 条温度数据, ${pressureData.length} 条压力数据`);
+          });
+        }
+      } catch (error) {
+        console.error('获取历史实时数据失败:', error);
       }
-      
-      return yAxis;
+    },
+
+    // 获取最新的真实数据
+    async fetchLatestRealTimeData() {
+      try {
+        // 使用fetch API直接请求，跳过token验证
+        console.log('📊 获取最新实时数据 - 跳过token验证');
+
+        const fetchResponse = await fetch('http://localhost:3000/hpdg/realtime/latest', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+            // 不添加Authorization头，允许无token访问
+          }
+        });
+
+        console.log('响应状态:', fetchResponse.status);
+
+        if (!fetchResponse.ok) {
+          const errorText = await fetchResponse.text();
+          console.error('API请求失败:', fetchResponse.status, errorText);
+          throw new Error(`HTTP ${fetchResponse.status}: ${errorText}`);
+        }
+
+        const response = { data: await fetchResponse.json() };
+        if (response.data.success && response.data.data) {
+          // 始终为所有站点更新数据，不依赖于选中状态
+          const stations = ['十字窖#1', '十字窖#2', '黄埔', '东莞'];
+          const latestData = response.data.data;
+          
+          const time = this.parseItemTime(latestData);
+          if (!time) {
+              console.warn('获取到无效的最新实时数据时间戳:', latestData);
+              return;
+        }
+
+          stations.forEach(stationName => {
+            const temp = this.getTemperatureFromData(latestData, stationName);
+            const pressure = this.getPressureFromData(latestData, stationName);
+              
+            if (temp !== null) {
+              this.$store.commit('updateRealTimeData', { stationName, dataType: 'temperature', time, value: temp });
+              }
+            if (pressure !== null) {
+              this.$store.commit('updateRealTimeData', { stationName, dataType: 'pressure', time, value: pressure });
+              }
+            });
+          }
+      } catch (error) {
+        console.error('获取最新实时数据失败:', error);
+      }
+    },
+
+    // 新增：健壮的时间解析函数
+    parseItemTime(item) {
+        let timeValue = item.time || item.timestamp || item.displayTime;
+        if (!timeValue) {
+            console.warn('数据点缺少有效的时间字段 (time, timestamp, displayTime)，跳过:', item);
+            return null;
+        }
+
+        let time = new Date(timeValue);
+
+        // 检查是否为秒级时间戳 (小于10^12)
+        if (typeof timeValue === 'number' && timeValue < 1000000000000) {
+            time = new Date(timeValue * 1000);
+        }
+
+        if (isNaN(time.getTime())) {
+            console.warn('解析到一个无效的时间值，跳过该数据点:', timeValue);
+            return null;
+        }
+        
+        return time;
+    },
+
+    // 启动预测数据获取
+    startPredictionFetching() {
+        // 始终为所有站点获取预测数据，不依赖于选中状态
+        const stationsToFetch = ['十字窖#1', '十字窖#2', '黄埔', '东莞'];
+
+        console.log(`🚀 为所有站点 ${stationsToFetch.join(', ')} 启动预测模式...`);
+
+        // 1. 为每个需要的站点获取初始60条数据
+        stationsToFetch.forEach(stationName => {
+            this.$store.dispatch('fetchPredictionData', { 
+                stationName, 
+                count: 60,
+                timeOffset: 0
+            });
+        });
+        
+        // 2. 设置定时器，每分钟获取最新的12条数据并追加
+      if (this.predictionTimer) {
+        clearInterval(this.predictionTimer);
+      }
+        
+        this.predictionTimer = setInterval(() => {
+            // 始终为所有站点获取预测数据，不依赖于选中状态
+            const currentStations = ['十字窖#1', '十字窖#2', '黄埔', '东莞'];
+
+            console.log(`⏱️ 1分钟到达，为所有站点 ${currentStations.join(',')} 获取最新的12条预测数据...`);
+            currentStations.forEach(stationName => {
+                // 调用 fetchPredictionData 来获取并追加12条新数据
+                this.$store.dispatch('fetchPredictionData', { 
+                    stationName, 
+                    count: 12
+                });
+            });
+        }, 60000); // 1分钟
+    },
+    
+    // 从真实数据中提取温度值
+    getTemperatureFromData(data, valveName) {
+      const temperatureFields = {
+        '十字窖#1': 'STN10_05_TI501', '十字窖#2': 'STN10_05_TI502',
+        '黄埔': 'STN10_00_TI002', '东莞': 'STN11_00_TI001'
+      };
+      return data[temperatureFields[valveName]] || null;
+    },
+    
+    // 从真实数据中提取压力值
+    getPressureFromData(data, valveName) {
+      const pressureFields = {
+        '十字窖#1': 'STN10_05_PI501', '十字窖#2': 'STN10_05_PI502',
+        '黄埔': 'STN10_00_PI019A', '东莞': 'STN11_00_PI001'
+      };
+      return data[pressureFields[valveName]] || null;
+    },
+
+    fetchRecentRealTimeData(count) {
+      // Implementation of fetchRecentRealTimeData method
     }
   },
 
   watch: {
-    pipelineId() {
-      // 管线变更时更新图表
-      if (this.predictionTimer) {
-        clearInterval(this.predictionTimer);
-      }
-      this.generateInitialData();
-      this.drawCharts();
-      this.startDataUpdates();
+    // 监听数据更新标记，自动重绘图表
+    getRealTimeUpdateFlag() {
+      this.$nextTick(() => this.drawCharts());
+    },
+    getPredictionUpdateFlag() {
+      this.$nextTick(() => this.drawCharts());
     },
     
     selectedValves: {
-      handler(newVal, oldVal) {
-        console.log('阀门选择已更新:', newVal);
-        
-        // 停止当前的数据更新
-        if (this.predictionTimer) {
-          clearInterval(this.predictionTimer);
-        }
-        
-        // 检查是否需要切换图表模式
-        const oldMode = oldVal && oldVal.length > 1;
-        const newMode = newVal && newVal.length > 1;
-        
-        if (oldMode !== newMode) {
-          // 需要重新初始化图表
-          this.$nextTick(() => {
-            this.initChart();
-          });
-        } else {
-          // 只需要重新生成数据和绘制
-          this.generateInitialData();
-          this.$nextTick(() => {
-            this.drawCharts();
-            this.startDataUpdates();
-          });
-        }
+      handler() {
+        console.log('监听到阀门选择变化，只重新初始化图表显示...');
+        // 只重新初始化图表以匹配单/双图表模式，数据获取保持独立运行
+        this.initChartOnly();
       },
       deep: true
-    },
-    
-    shouldUseDualCharts: {
-      handler(newVal, oldVal) {
-        if (newVal !== oldVal) {
-          // 图表模式变化，需要重新初始化
-          this.$nextTick(() => {
-            this.initChart();
-          });
-        }
-      }
     }
   }
 }
@@ -1825,17 +848,6 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
-}
-
-.chart-section h4 {
-  color: #66dffb;
-  margin: 0 0 10px 0;
-  text-align: center;
-  font-size: 14px;
-  font-weight: 500;
-  text-shadow: 0 0 5px rgba(102, 223, 251, 0.3);
-  padding: 5px 0;
-  border-bottom: 1px solid rgba(102, 223, 251, 0.2);
 }
 
 #temperature_chart,
@@ -1883,37 +895,6 @@ export default {
 
 .wgrytj_bt {
   color: #66dffb;
-}
-
-.custom-checkbox {
-  margin-right: 15px;
-}
-
-.custom-checkbox:last-child {
-  margin-right: 0;
-}
-
-.el-checkbox-group {
-  display: flex;
-  align-items: center;
-}
-
-.el-checkbox__label {
-  color: #ffffff !important;
-  font-size: 12px;
-}
-
-.el-checkbox__input.is-checked .el-checkbox__inner {
-  background-color: #1890ff;
-  border-color: #1890ff;
-}
-
-.el-checkbox__inner {
-  border-color: #66dffb;
-}
-
-.el-checkbox__inner:hover {
-  border-color: #1890ff;
 }
 
 /* 切换按钮样式 */
@@ -1967,10 +948,6 @@ export default {
   background: linear-gradient(135deg, rgba(102, 223, 251, 0.2), rgba(82, 196, 26, 0.1));
   color: #66dffb;
   box-shadow: 0 0 10px rgba(102, 223, 251, 0.3);
-}
-
-.toggle-btn.active:hover {
-  box-shadow: 0 0 15px rgba(102, 223, 251, 0.4);
 }
 
 .icon-temperature:before {

@@ -26,12 +26,12 @@
                     <el-menu-item index="home/TSYL_Prediction" @click="TSYL_Prediction">
                         <span class="menu-item-text">停输压降</span>
                     </el-menu-item>
-                    <el-menu-item index="home/pipe-capacity" @click="pipeCapacity">
+                    <!-- <el-menu-item index="home/pipe-capacity" @click="pipeCapacity">
                         <span class="menu-item-text">停输管容量</span>
                     </el-menu-item>
                     <el-menu-item index="home/test_chart" @click="testChart">
                         <span class="menu-item-text">单元测试</span>
-                    </el-menu-item>
+                    </el-menu-item> -->
                 </el-menu>
             </div>
             <div class="right nav" style="background:#585eaa">

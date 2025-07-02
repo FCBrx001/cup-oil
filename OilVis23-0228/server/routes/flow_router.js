@@ -58,7 +58,7 @@ const server = ws.createServer(function(conn){
     conn.on("error",function(code,reason) {
         console.log("sljsError."+reason)
     });
-}).listen(3011);
+}).listen(3012);
 
 const server2 = ws.createServer(function(conn){
     console.log('new connection for time...')

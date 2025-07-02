@@ -4,33 +4,46 @@
     <div class="zhenwen" style="display: flex;">
       <!-- 左侧图表展示 -->
       <div style="width: 23%;">
-        <!-- 管段状态信息 -->
-        <pipeline-status-info 
-          @pipeline-changed="changePipeline" 
-          ref="pipelineStatusInfo" />
-          
-        <div class="data-box1 left_tb fl " style="height: 450px;margin-top: 25px;">
-          <i class="topL"></i>
-          <i class="topR"></i>
-          <i class="bottomL"></i>
-          <i class="bottomR"></i>
-          <div class="data-title" style="width:13rem;">
-            <b class="data-title-left fl">[</b>
-            <span style="font-size:1.5rem;width:12rem;">物性计算</span>
-            <b class="data-title-right fr">]</b>
+        <div style="width: 98%;height: 580px;" class="data-box1 left_tb fl">
+          <!-- 管段状态信息 -->
+          <div>
+            <i class="topL"></i>
+            <i class="topR"></i>
+            <i class="bottomL"></i>
+            <i class="bottomR"></i>
+            <pipeline-status-info
+              @pipeline-changed="changePipeline"
+              @connection-status-changed="handleConnectionStatusChanged"
+              ref="pipelineStatusInfo" />
           </div>
-          <div style="width: 100%;height: 100%;">
-            <Scatterplot></Scatterplot>
+          <div class="data-box1 left_tb fl " style="height: 411px;margin-top: 15px;width: 100%;">
+            <i class="topL"></i>
+            <i class="topR"></i>
+            <i class="bottomL"></i>
+            <i class="bottomR"></i>
+            <div class="data-title" style="width:13rem;">
+              <b class="data-title-left fl">[</b>
+              <span style="font-size:1.5rem;width:12rem;">物性计算</span>
+              <b class="data-title-right fr">]</b>
+            </div>
+            <div style="width: 100%;height: 100%;">
+              <Scatterplot></Scatterplot>
+            </div>
           </div>
         </div>
       </div>
       
       <div style="width: 50%;margin-left: 10px;">
         <!-- 管段沿线监测 -->
-        <pipeline-visualization 
-          :pipeline-id="selectedPipeline" 
+        <pipeline-visualization
+          :pipeline-id="selectedPipeline"
           :selected-valves="selectedValves"
-          @valve-clicked="handleValveClick" />
+          :websocket-connection-status="websocketConnectionStatus"
+          @valve-clicked="handleValveClick"
+          @prediction-mode-changed="handlePredictionModeChange"
+          @real-time-data="handleRealTimeData"
+          @monitor-info="handleMonitorInfoUpdate"
+          ref="pipelineVisualization" />
           
         <div class="data-box1 left_tb box1-backlu fl" style="height: 745px;margin-top: 25px;">
           <i class="topL"></i>
@@ -39,7 +52,7 @@
           <i class="bottomR"></i>
           <div class="data-title" style="width:13rem;">
             <b class="data-title-left fl">[</b>
-            <span style="font-size:1.5rem;width:12rem;">参数对比分析</span>
+            <span style="font-size:1.5rem;width:12rem;">压降温降预测</span>
             <b class="data-title-right fr">]</b>
           </div>
           <div style="height: 100%">
@@ -48,6 +61,8 @@
               <prediction-chart 
                 :pipeline-id="selectedPipeline"
                 :selected-valves="selectedValves"
+                :prediction-mode="predictionMode"
+                :real-time-data="currentRealTimeData"
                 @remove-valve="handleRemoveValve"
                 @clear-all-valves="handleClearAllValves"
                 ref="predictionChart" />
@@ -78,42 +93,42 @@
             <div class="block-title">
               <span class="title-text">偷漏油监测</span>
               <div class="status-info">
-                <span class="status-dot normal"></span>
-                <span class="status-text">系统运行正常</span>
+                <span class="status-dot" :class="monitorInfo.statusClass || 'normal'"></span>
+                <span class="status-text">{{ monitorInfo.status === '正常' ? '系统运行正常' : '系统存在警告' }}</span>
               </div>
             </div>
             <div class="block-content">
               <div class="monitor-grid">
                 <div class="monitor-item">
                   <span class="label">监测点</span>
-                  <span class="value">阀室#1</span>
+                  <span class="value">{{ monitorInfo.point }}</span>
                 </div>
                 <div class="monitor-item">
                   <span class="label">状态</span>
-                  <span class="value normal">正常</span>
+                  <span class="value" :class="monitorInfo.statusClass || 'normal'">{{ monitorInfo.status }}</span>
                 </div>
                 <div class="monitor-item">
                   <span class="label">压力变化</span>
-                  <span class="value">-0.02 MPa</span>
+                  <span class="value">{{ monitorInfo.pressureChange }}</span>
                 </div>
                 <div class="monitor-item">
                   <span class="label">温度变化</span>
-                  <span class="value">+0.5 ℃</span>
+                  <span class="value">{{ monitorInfo.tempChange }}</span>
                 </div>
                 <div class="monitor-item">
                   <span class="label">流量变化</span>
-                  <span class="value">-0.1 m³/h</span>
+                  <span class="value">{{ monitorInfo.flowChange }}</span>
                 </div>
                 <div class="monitor-item">
                   <span class="label">检测时间</span>
-                  <span class="value">2024-02-28 14:30</span>
+                  <span class="value">{{ monitorInfo.time }}</span>
                 </div>
               </div>
             </div>
           </div>
           
           <!-- 高点汽化风险监测 -->
-          <div class="warning-block" style="height: 28%; margin-bottom: 10px;">
+          <div class="warning-block" style="height: 24%; margin-bottom: 0px;">
             <div class="block-title">
               <span class="title-text">高点汽化风险监测</span>
               <div class="status-info">
@@ -129,16 +144,36 @@
           </div>
           
           <!-- 停输保压方案 -->
-          <div class="warning-block" style="height: 45%;">
+          <div class="warning-block" style="height: 20%;">
+            <div class="block-title">
+              <span class="title-text">停输管容量变化</span>
+              <div class="status-info">
+                <span class="status-dot normal"></span>
+                <span class="status-text">容量波动正常</span>
+              </div>
+            </div>
+            <div class="block-content">
+              <!-- 管容量图表 -->
+              <pipe-capacity-chart />
+            </div>
+          </div>
+          <div class="warning-block" style="height: 29.5%;">
             <div class="block-title">
               <span class="title-text">停输保压方案</span>
               <div class="status-info">
+                <select v-model="selectedStation"
+                  style="margin: 0 10px; height: 26px; border-radius: 4px; border: 1px solid #1890ff; background: #001529; color: #66dffb; font-size: 15px;">
+                  <option value="huangpu">黄埔</option>
+                  <option value="shizijiao1">十字窖#1</option>
+                  <option value="shizijiao2">十字窖#2</option>
+                  <option value="dongguan">东莞</option>
+                </select>
                 <span class="status-dot normal"></span>
                 <span class="status-text">方案执行中</span>
               </div>
             </div>
             <div class="block-content">
-              <pressure-maintenance-plan />
+              <pressure-maintenance-plan :station="selectedStation" />
             </div>
           </div>
         </div>
@@ -158,6 +193,7 @@ import PipelineVisualization from './PipelineVisualization.vue';
 import PredictionChart from './PredictionChart.vue';
 import VaporizationWarning from './VaporizationWarning.vue';
 import PressureMaintenancePlan from './PressureMaintenancePlan.vue';
+import PipeCapacityChart from './PipeCapacityChart.vue';
 
 export default {
   name: 'mmyj_Page',
@@ -168,17 +204,24 @@ export default {
     PipelineVisualization,
     PredictionChart,
     VaporizationWarning,
-    PressureMaintenancePlan
+    PressureMaintenancePlan,
+    PipeCapacityChart
   },
   data() {
     return {
       selectedPipeline: 'pipeline1',
+      selectedStation: 'dongguan',
       selectedValve: null,
       selectedValveInfo: null,
       selectedValves: [],
       maxValveSelection: 4,
       configDialogVisible: false,
       selectedPlan: 'plan1',
+      predictionMode: {
+        isEnabled: false,
+        valveName: '',
+        startTime: null
+      },
       planParams: {
         initialPressure: 2.0,
         monitorInterval: 1,
@@ -191,13 +234,32 @@ export default {
         autoExecute: false,
         notifyPersonnel: false,
         logOperations: false
-      }
+      },
+      // 新增：当前的真实数据
+      currentRealTimeData: null,
+      // WebSocket连接状态
+      websocketConnectionStatus: 'disconnected',
+      monitorInfo: {
+          point: '阀室#1',
+          status: '正常',
+          pressureChange: '-0.02 MPa',
+          tempChange: '+0.5 ℃',
+          flowChange: '-0.1 m³/h',
+          time: '2024-02-28 14:30',
+          statusClass: 'normal'
+        }
     }
   },
   methods: {
     changePipeline(value) {
       this.selectedPipeline = value;
       // Update charts that depend on pipeline
+    },
+
+    // 处理WebSocket连接状态变化
+    handleConnectionStatusChanged(status) {
+      this.websocketConnectionStatus = status;
+      console.log('WebSocket连接状态变化:', status);
     },
     handleValveClick(data) {
       // 检查是否已经选中了这个站点/阀室
@@ -280,6 +342,32 @@ export default {
         type: 'info',
         message: '已清空所有选择的站点'
       });
+    },
+    handlePredictionModeChange(modeData) {
+      this.predictionMode = {
+        isEnabled: modeData.isEnabled,
+        valveName: modeData.valveName,
+        startTime: modeData.startTime
+      };
+      console.log('预测模式状态变化:', this.predictionMode);
+    },
+    
+    handleMonitorInfoUpdate(newInfo) {
+      this.monitorInfo = newInfo;
+    },
+
+    // 新增：处理来自管线图的真实数据
+    handleRealTimeData(data) {
+      console.log('mmyj_Page收到真实数据:', data);
+      
+      // 更新当前真实数据
+      this.currentRealTimeData = {
+        ...data,
+        timestamp: new Date(),
+        isSequentialData: true
+      };
+      
+      console.log('准备传递给参数对比分析:', this.currentRealTimeData);
     },
   }
 }

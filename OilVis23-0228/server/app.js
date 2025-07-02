@@ -13,6 +13,7 @@ var RealMonitor = require('./routes/realmonitor_router')
 var par_get = require('./routes/paramsGet')
 var hpDg_get = require('./routes/huangpuDongguanGet')
 var elevation_get = require('./routes/elevationDataGet')
+var prediction_get = require('./routes/predictionDataGet')
 var app = express();
 var verifyToken = require('./middlewares/verifyToken'); 
 // view engine setup
@@ -48,13 +49,14 @@ app.use(express.static(path.join(__dirname, "dist"
 )));
 app.use('/Judge', Judge)
 app.use('/elevation',elevation_get)
+app.use('/prediction',prediction_get)
+app.use('/hpdg',hpDg_get)  // 移到token验证之前，允许无token访问
 app.use(verifyToken);
 app.use('/RT',RT)
 app.use('/Popup',Popup)
 app.use('/OilBT',OilBT)
 app.use('/RealMonitor',RealMonitor)
 app.use('/parget',par_get)
-app.use('/hpdg',hpDg_get)
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));

@@ -44,10 +44,6 @@
               <span class="info-label">标准黏度:</span>
               <span class="info-value">{{ getCurrentOilProperty('黏度_标况') }} mPa·s</span>
             </div>
-            <div class="info-item">
-              <span class="info-label">分子量:</span>
-              <span class="info-value">{{ getCurrentOilProperty('分子量') }} g/mol</span>
-            </div>
           </div>
         </div>
         
@@ -449,7 +445,6 @@ export default {
 .oil-property-calculator {
   width: 100%;
   height: 100%;
-  background-color: #121212;
   color: #eee;
   position: relative;
   overflow: hidden;
@@ -457,7 +452,7 @@ export default {
 
 .scrollable-content {
   width: 100%;
-  height: 100%;
+  height: 95%;
   overflow-y: auto;
   padding: 10px;
   box-sizing: border-box;
@@ -465,7 +460,7 @@ export default {
 
 .header {
   text-align: center;
-  margin-bottom: 10px;
+  margin-bottom: 0;
 }
 
 .title {
@@ -478,15 +473,16 @@ export default {
 .calculator-container {
   display: flex;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 0px;
 }
 
 .input-panel {
   width: 35%;
-  background-color: #1e1e1e;
+  /* background-color: #1e1e1e; */
   border-radius: 4px;
   padding: 10px;
   border: 1px solid #333;
+  height: 330px;
 }
 
 .input-section h3 {
@@ -495,7 +491,7 @@ export default {
   margin-bottom: 15px;
   font-size: 16px;
   border-bottom: 1px solid #333;
-  padding-bottom: 5px;
+  padding-bottom: 0px;
 }
 
 .input-group {
@@ -510,22 +506,22 @@ export default {
 }
 
 .oil-info-section {
-  margin-top: 20px;
-  padding-top: 15px;
+  margin-top: 0px;
+  padding-top: 0px;
   border-top: 1px solid #333;
 }
 
 .oil-info-section h3 {
   color: #09f;
   margin-top: 0;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
   font-size: 14px;
 }
 
 .info-item {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 3px;
   font-size: 12px;
 }
 
@@ -540,12 +536,13 @@ export default {
 
 .results-panel {
   flex: 1;
-  background-color: #1e1e1e;
+  /* background-color: #1e1e1e; */
   border-radius: 4px;
   padding: 10px;
   display: flex;
   flex-direction: column;
   border: 1px solid #333;
+  height: 330px;
 }
 
 .chart-container {

@@ -536,8 +536,8 @@ export default {
 
       const option = {
         title: {
-          text: `管线沿线参数分布图 (显示${this.pipelineData.length}个采样点)`,
-          subtext: `里程: 0 - ${this.maxMileage.toFixed(3)} km | 高程: ${minElevation.toFixed(1)} - ${maxElevation.toFixed(1)} m | 数据源: ${this.dataSource} | 采样比例: 1:${this.samplingInterval}`,
+          // text: `管线沿线参数分布图 (显示${this.pipelineData.length}个采样点)`,
+          // subtext: `里程: 0 - ${this.maxMileage.toFixed(3)} km | 高程: ${minElevation.toFixed(1)} - ${maxElevation.toFixed(1)} m | 数据源: ${this.dataSource} | 采样比例: 1:${this.samplingInterval}`,
           left: 'center',
           textStyle: {
             color: '#ffffff',
@@ -590,7 +590,7 @@ export default {
         },
         legend: {
           data: ['沿线压力', '沿线温度', '沿线高程', '高程最高点'],
-          top: 50,
+          top: 10,
           textStyle: {
             color: '#ffffff',
             fontSize: 12
@@ -634,8 +634,8 @@ export default {
         grid: {
           left: '8%',
           right: '8%',
-          bottom: '20%',
-          top: '25%',
+          bottom: '30%',
+          top: '10%',
           containLabel: true
         },
         xAxis: {

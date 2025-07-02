@@ -360,14 +360,14 @@ elevation_cube.getAllElevationData()
     console.log("获取到的高程数据数量：", result ? result.length : 0);
     if (result && result.length > 0) {
         const validData = result.filter(item => item.里程 !== undefined && item.高程 !== undefined);
-        console.log("有效高程数据数量：", validData.length);
+        // console.log("有效高程数据数量：", validData.length);
         if (validData.length > 0) {
-            console.log("示例数据：", validData.slice(0, 3));
+            // console.log("示例数据：", validData.slice(0, 3));
         }
     }
   })
   .catch(err => {
-    console.error("获取高程数据出错:", err.message);
+    // console.error("获取高程数据出错:", err.message);
   });
 
 module.exports = elevationDataGet; 
