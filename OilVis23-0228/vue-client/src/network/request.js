@@ -39,7 +39,7 @@ import axios from 'axios'
 export function request(config){
     //1、创建axios的实例
     const instance=axios.create({
-        baseURL: process.env.VUE_APP_API_BASE_URL || 'http://localhost:3000',//路径地址
+        baseURL: '/api',//使用代理路径
         timeout:10000
     })
     //2、axios的拦截器

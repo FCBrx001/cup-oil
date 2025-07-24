@@ -4,7 +4,7 @@ const testPredictionAPI = () => {
   const options = {
     hostname: 'localhost',
     port: 3000,
-    path: '/prediction/station/' + encodeURIComponent('十字窖#2') + '/sequence?count=2',
+    path: '/prediction/station/' + encodeURIComponent('站点2') + '/sequence?count=2',
     method: 'GET'
   };
 

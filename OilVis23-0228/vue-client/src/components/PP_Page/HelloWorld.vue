@@ -13,9 +13,11 @@
             
             <div class="input-group">
               <label>油品类型</label>
-              <el-select v-model="oilType" placeholder="选择油品类型" @change="calculateProperties" size="small">
-                <el-option v-for="item in oilTypes" :key="item.value" :label="item.label" :value="item.value"></el-option>
-              </el-select>
+              <select v-model="oilType"
+                style="margin: 10px 10px;   width: 90%; height: 26px; border-radius: 4px; border: 1px solid #1890ff; background: #001529; color: #66dffb; font-size: 15px;"
+                @change="calculateProperties">
+                <option v-for="item in oilTypes" :key="item.value" :value="item.value">{{ item.label }}</option>
+              </select>
             </div>
             
             <div class="input-group">
@@ -699,6 +701,8 @@ export default {
   text-align: center;
   font-size: 12px;
 }
+
+/* 原生select样式已通过内联样式应用 */
 
 :deep(.el-select) {
   width: 100%;

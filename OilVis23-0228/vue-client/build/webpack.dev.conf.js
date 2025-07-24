@@ -82,9 +82,27 @@ module.exports = new Promise((resolve, reject) => {
       devWebpackConfig.devServer.port = port
 
       // Add FriendlyErrorsPlugin
+      const os = require('os')
+      const interfaces = os.networkInterfaces()
+      let localIp = 'localhost'
+
+      // 获取局域网IP
+      for (const name of Object.keys(interfaces)) {
+        for (const iface of interfaces[name]) {
+          if (iface.family === 'IPv4' && !iface.internal) {
+            localIp = iface.address
+            break
+          }
+        }
+        if (localIp !== 'localhost') break
+      }
+
       devWebpackConfig.plugins.push(new FriendlyErrorsPlugin({
         compilationSuccessInfo: {
-          messages: [`Your application is running here: http://${devWebpackConfig.devServer.host}:${port}`],
+          messages: [
+            `Local:   http://localhost:${port}`,
+            `Network: http://${localIp}:${port}`
+          ],
         },
         onErrors: config.dev.notifyOnErrors
         ? utils.createNotifierCallback()

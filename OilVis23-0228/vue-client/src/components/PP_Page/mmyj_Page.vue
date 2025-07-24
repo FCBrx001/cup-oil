@@ -45,7 +45,7 @@
           @monitor-info="handleMonitorInfoUpdate"
           ref="pipelineVisualization" />
           
-        <div class="data-box1 left_tb box1-backlu fl" style="height: 745px;margin-top: 25px;">
+        <div class="data-box1 left_tb box1-backlu fl" style="height: 750px;margin-top: 20px;">
           <i class="topL"></i>
           <i class="topR"></i>
           <i class="bottomL"></i>
@@ -57,14 +57,14 @@
           </div>
           <div style="height: 100%">
             <!-- 参数动态预测 -->
-            <div style="width: 100%;height: 55%;">
+            <div style="width: 100%;height: 60%;">
               <prediction-chart 
                 :pipeline-id="selectedPipeline"
                 :selected-valves="selectedValves"
                 :prediction-mode="predictionMode"
                 :real-time-data="currentRealTimeData"
                 @remove-valve="handleRemoveValve"
-                @clear-all-valves="handleClearAllValves"
+
                 ref="predictionChart" />
             </div>
             <span class="wgrytj_bt" style="font-size:1.2rem;"></span>
@@ -164,8 +164,8 @@
                 <select v-model="selectedStation"
                   style="margin: 0 10px; height: 26px; border-radius: 4px; border: 1px solid #1890ff; background: #001529; color: #66dffb; font-size: 15px;">
                   <option value="huangpu">黄埔</option>
-                  <option value="shizijiao1">十字窖#1</option>
-                  <option value="shizijiao2">十字窖#2</option>
+                  <option value="shizijiao1">十字窖</option>
+                  <option value="shizijiao2">站点2</option>
                   <option value="dongguan">东莞</option>
                 </select>
                 <span class="status-dot normal"></span>
@@ -214,7 +214,7 @@ export default {
       selectedValve: null,
       selectedValveInfo: null,
       selectedValves: [],
-      maxValveSelection: 4,
+      maxValveSelection: 2,
       configDialogVisible: false,
       selectedPlan: 'plan1',
       predictionMode: {
@@ -262,43 +262,106 @@ export default {
       console.log('WebSocket连接状态变化:', status);
     },
     handleValveClick(data) {
-      // 检查是否已经选中了这个站点/阀室
-      const existingIndex = this.selectedValves.findIndex(valve => 
-        valve.valveName === data.valveName
-      );
-      
-      if (existingIndex !== -1) {
-        // 如果已选中，则取消选择
-        this.selectedValves.splice(existingIndex, 1);
-        this.$message({
-          type: 'info',
-          message: `已取消选择 ${data.valveName}`
-        });
-      } else {
-        // 如果未选中，检查是否超过最大选择数
-        if (this.selectedValves.length >= this.maxValveSelection) {
+      // 构造点击的站点数据
+      const newValve = {
+        valveId: `${data.stationType}_${data.valveIndex || 0}`,
+        valveName: data.valveName,
+        valveIndex: data.valveIndex || 0,
+        stationType: data.stationType || 'valve',
+        stationData: data.stationData || {},
+        x: data.x,
+        y: data.y
+      };
+
+      // 构造黄埔站数据作为基准对比站点
+      const huangpuValve = {
+        valveId: 'startStation_0',
+        valveName: '黄埔',
+        valveIndex: 0,
+        stationType: 'startStation',
+        stationData: {
+          environmentTemp: 26,
+          inletPressure: 2.6,
+          inletTemp: 88,
+          outletPressure: 2.4,
+          outletTemp: 87
+        },
+        x: 0,
+        y: 650
+      };
+
+      // 构造东莞站数据
+      const dongguanValve = {
+        valveId: 'endStation_0',
+        valveName: '东莞',
+        valveIndex: 0,
+        stationType: 'endStation',
+        stationData: {
+          environmentTemp: 24,
+          inletPressure: 0.8,
+          inletTemp: 85,
+          outletPressure: 0.6,
+          outletTemp: 84
+        },
+        x: 500,
+        y: 650
+      };
+
+      if (this.selectedValves.length === 0) {
+        // 第一次点击站点
+        if (data.valveName === '黄埔') {
+          // 点击黄埔：黄埔 vs 东莞
+          this.selectedValves = [huangpuValve, dongguanValve];
+          this.$message({
+            type: 'success',
+            message: '正在对比 黄埔站 与 东莞站'
+          });
+        } else {
+          // 点击其他站点：黄埔 vs 选中站点
+          this.selectedValves = [huangpuValve, newValve];
+          this.$message({
+            type: 'success',
+            message: `正在对比 黄埔站 与 ${data.valveName}`
+          });
+        }
+      } else if (this.selectedValves.length === 1) {
+        // 只有一个站点时，点击另一个站点开始对比
+        const existingStation = this.selectedValves[0];
+        
+        // 检查是否点击了相同的站点
+        if (existingStation.valveName === data.valveName) {
           this.$message({
             type: 'warning',
-            message: `最多只能选择 ${this.maxValveSelection} 个站点进行对比`
+            message: `${data.valveName} 已经在对比中，不能重复选择同一站点`
           });
           return;
         }
         
-        // 添加到选中列表
-        const newValve = {
-          valveId: `${data.stationType}_${data.valveIndex || this.selectedValves.length}`,
-          valveName: data.valveName,
-          valveIndex: data.valveIndex || 0,
-          stationType: data.stationType || 'valve',
-          stationData: data.stationData || {},
-          x: data.x,
-          y: data.y
-        };
-        
+        // 添加第二个站点开始对比
         this.selectedValves.push(newValve);
         this.$message({
           type: 'success',
-          message: `已选择 ${data.valveName} 进行对比分析`
+          message: `正在对比 ${existingStation.valveName} 与 ${data.valveName}`
+        });
+      } else if (this.selectedValves.length === 2) {
+        // 检查是否点击了已经选中的站点
+        const isAlreadySelected = this.selectedValves.some(valve => valve.valveName === data.valveName);
+        
+        if (isAlreadySelected) {
+          // 如果点击的是已经选中的站点，显示警告信息
+          this.$message({
+            type: 'warning',
+            message: `${data.valveName} 已经在对比中，不能重复选择同一站点`
+          });
+          return; // 直接返回，不进行任何操作
+        }
+        
+        // 已有两个站点，点击第三个站点：保留第二个站点，替换为新选中站点
+        const secondStation = this.selectedValves[1]; // 保留第二个站点
+        this.selectedValves = [secondStation, newValve];
+        this.$message({
+          type: 'success',
+          message: `正在对比 ${secondStation.valveName} 与 ${data.valveName}`
         });
       }
       
@@ -326,8 +389,10 @@ export default {
         valveIndex: parseInt(valveName.replace(/[^0-9]/g, '')) || 0
       };
     },
-    handleRemoveValve(valveId) {
-      const index = this.selectedValves.findIndex(valve => valve.valveId === valveId);
+    handleRemoveValve(valve) {
+      // 支持传入valve对象或valveId
+      const targetId = typeof valve === 'string' ? valve : valve.valveId;
+      const index = this.selectedValves.findIndex(v => v.valveId === targetId);
       if (index !== -1) {
         const removedValve = this.selectedValves.splice(index, 1)[0];
         this.$message({
@@ -336,13 +401,7 @@ export default {
         });
       }
     },
-    handleClearAllValves() {
-      this.selectedValves = [];
-      this.$message({
-        type: 'info',
-        message: '已清空所有选择的站点'
-      });
-    },
+
     handlePredictionModeChange(modeData) {
       this.predictionMode = {
         isEnabled: modeData.isEnabled,

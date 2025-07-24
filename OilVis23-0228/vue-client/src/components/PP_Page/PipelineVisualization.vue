@@ -18,20 +18,20 @@
             <span class="parameter-value" :class="environmentTempStatus">{{ displayEnvironmentTemp }}</span>
           </div>
           <div class="parameter-item">
-            <span class="parameter-label">十字窖1压力</span>
+            <span class="parameter-label">十字窖压力</span>
             <span class="parameter-value" :class="valve1PressureStatus">{{ displayValve1Pressure }}</span>
           </div>
           <div class="parameter-item">
-            <span class="parameter-label">十字窖1温度</span>
+            <span class="parameter-label">十字窖温度</span>
             <span class="parameter-value" :class="valve1TempStatus">{{ displayValve1Temp }}</span>
           </div>
           <div class="parameter-item">
-            <span class="parameter-label">十字窖2压力</span>
+            <span class="parameter-label">站点2压力</span>
             <span class="parameter-value" :class="valve2PressureStatus">{{ displayValve2Pressure }}</span>
           </div>
 
           <div class="parameter-item">
-            <span class="parameter-label">十字窖2温度</span>
+            <span class="parameter-label">站点2温度</span>
             <span class="parameter-value" :class="valve2TempStatus">{{ displayValve2Temp }}</span>
           </div>
           
@@ -59,9 +59,9 @@
         <span :class="getConnectionIndicatorClass">{{ getConnectionIndicatorSymbol }}</span>
         <span class="connection-text" :class="getConnectionTextClass">{{ getConnectionStatusText }}</span>
         <!-- 测试按钮 -->
-        <button @click="toggleOfflineMode" style="margin-left: 10px; padding: 2px 8px; font-size: 12px; background: rgba(255,255,255,0.2); border: 1px solid #fff; color: #fff; border-radius: 3px; cursor: pointer;">
+        <!-- <button @click="toggleOfflineMode" style="margin-left: 10px; padding: 2px 8px; font-size: 12px; background: rgba(255,255,255,0.2); border: 1px solid #fff; color: #fff; border-radius: 3px; cursor: pointer;">
           {{ manualOfflineMode ? '恢复在线' : '模拟离线' }}
-        </button>
+        </button> -->
       </div>
       
 
@@ -138,15 +138,15 @@ export default {
         const stationData = allData[stationName];
         if (stationData.temperature.length > 0) {
           const latestTemp = stationData.temperature[stationData.temperature.length - 1];
-          if (stationName === '十字窖#1') latestData.STN10_05_TI501 = latestTemp[1];
-          if (stationName === '十字窖#2') latestData.STN10_05_TI502 = latestTemp[1];
+          if (stationName === '十字窖') latestData.STN10_05_TI501 = latestTemp[1];
+          if (stationName === '站点2') latestData.STN10_05_TI502 = latestTemp[1];
           if (stationName === '黄埔') latestData.STN10_00_TI002 = latestTemp[1];
           if (stationName === '东莞') latestData.STN11_00_TI001 = latestTemp[1];
         }
         if (stationData.pressure.length > 0) {
           const latestPressure = stationData.pressure[stationData.pressure.length - 1];
-          if (stationName === '十字窖#1') latestData.STN10_05_PI501 = latestPressure[1];
-          if (stationName === '十字窖#2') latestData.STN10_05_PI502 = latestPressure[1];
+          if (stationName === '十字窖') latestData.STN10_05_PI501 = latestPressure[1];
+          if (stationName === '站点2') latestData.STN10_05_PI502 = latestPressure[1];
           if (stationName === '黄埔') latestData.STN10_00_PI019A = latestPressure[1];
           if (stationName === '东莞') latestData.STN11_00_PI001 = latestPressure[1];
         }
@@ -184,7 +184,7 @@ export default {
       return `${this.defaultValues.environmentTemp}℃`;
     },
 
-    // 十字窖1压力显示
+    // 十字窖压力显示
     displayValve1Pressure() {
       // 使用store中的实时数据
       if (this.latestRealTimeData.STN10_05_PI501 !== undefined) {
@@ -194,7 +194,7 @@ export default {
       return `${this.defaultValues.valve1Pressure}MPa`;
     },
 
-    // 十字窖1温度显示
+    // 十字窖温度显示
     displayValve1Temp() {
       // 使用store中的实时数据
       if (this.latestRealTimeData.STN10_05_TI501 !== undefined) {
@@ -578,7 +578,7 @@ export default {
           outletTemp: 87
         }
       }, {
-        name: "十字窖#1",
+        name: "十字窖",
         category: 0,
         active: false,
         symbolSize: 15,
@@ -603,7 +603,7 @@ export default {
           outletTemp: 86.5
         }
       }, {
-        name: "十字窖#2",
+        name: "站点2",
         category: 0,
         active: false,
         symbolSize: 15,
@@ -633,9 +633,10 @@ export default {
 
       // 根据选中状态更新站点和阀门点样式
       data.forEach((point, index) => {
-        const isSelected = this.selectedValves.some(selectedValve =>
-          selectedValve.valveName === point.name
-        );
+        // 如果没有选中任何站点，默认黄埔为选中状态
+        const isSelected = this.selectedValves.length === 0 
+          ? point.name === '黄埔'
+          : this.selectedValves.some(selectedValve => selectedValve.valveName === point.name);
 
         // 更新样式
         if (isSelected) {
@@ -794,33 +795,35 @@ export default {
             }
           },
           data: linesData
-        }, {
-          name: 'Scatter',
-          type: 'scatter',
-          symbol: 'image://https://s2.loli.net/2024/09/14/TJ3RGyusxcqm6lb.png',
-          data: [
-            [200, 550],  // 对应十字窖#1
-            [350, 550]   // 对应十字窖#2
-          ],
-          label: {
-            normal: {
-              show: true,
-              textStyle: {
-                color: '#fff',
-                fontSize: 20,
-              },
-              formatter: function (params) {
-                return '' //✔
-              },
-            }
-          },
-          symbolSize: function (data) {
-            return 30
-          },
-          itemStyle: {
-            color: 'red'
-          }
-        }]
+        }, 
+        // {
+        //   name: 'Scatter',
+        //   type: 'scatter',
+        //   symbol: 'image://https://s2.loli.net/2024/09/14/TJ3RGyusxcqm6lb.png',
+        //   data: [
+        //     [200, 550],  // 对应十字窖
+        //     [350, 550]   // 对应站点2
+        //   ],
+        //   label: {
+        //     normal: {
+        //       show: true,
+        //       textStyle: {
+        //         color: '#fff',
+        //         fontSize: 20,
+        //       },
+        //       formatter: function (params) {
+        //         return '' //✔
+        //       },
+        //     }
+        //   },
+        //   symbolSize: function (data) {
+        //     return 30
+        //   },
+        //   itemStyle: {
+        //     color: 'red'
+        //   }
+        // }
+      ]
       };
       this.pipe_section.setOption(option);
 
@@ -852,8 +855,8 @@ export default {
 
           // 根据点击位置获取对应的阀门点数据
           let valveIndex = -1;
-          if (params.dataIndex === 0) valveIndex = 1;  // 对应十字窖#1
-          else if (params.dataIndex === 1) valveIndex = 2;  // 对应十字窖#2
+          if (params.dataIndex === 0) valveIndex = 1;  // 对应十字窖
+          else if (params.dataIndex === 1) valveIndex = 2;  // 对应站点2
 
           if (valveIndex >= 0) {
             const targetValve = items.find(item => item.valveIndex === valveIndex);

@@ -399,7 +399,7 @@ export default {
                     }
                 },
             }, {
-                name: "十字窖#1",
+                name: "十字窖",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -416,7 +416,7 @@ export default {
                 },
             },
             {
-                name: "十字窖#2",
+                name: "站点2",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -544,7 +544,7 @@ export default {
                     }
                 },
             }, {
-                name: "十字窖#10",
+                name: "十字窖0",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -560,7 +560,7 @@ export default {
                     }
                 },
             }, {
-                name: "十字窖#11",
+                name: "十字窖1",
                 category: 0,
                 active: false,
                 symbolSize: 10,

@@ -10,19 +10,19 @@
     
 //     // 站点与数据库集合的映射关系
 //     this.stationCollectionMap = {
-//       '十字窖#1': '阀室1预测数据',
-//       '十字窖#2': '阀室2预测数据', 
+//       '十字窖': '阀室1预测数据',
+//       '站点2': '阀室2预测数据', 
 //       '黄埔': '黄埔预测数据',
 //       '东莞': '东莞预测数据'
 //     };
     
 //     // 站点与数据字段的映射关系
 //     this.stationFieldMap = {
-//       '十字窖#1': {
+//       '十字窖': {
 //         pressure: '阀室1预测压力',
 //         temperature: '阀室1预测温度'
 //       },
-//       '十字窖#2': {
+//       '站点2': {
 //         pressure: '阀室2预测压力', 
 //         temperature: '阀室2预测温度'
 //       },
@@ -137,9 +137,9 @@
 //   const predictionData = new TestPredictionData();
   
 //   try {
-//     // 测试十字窖#2的预测数据
-//     console.log('=== 测试十字窖#2预测数据 ===');
-//     const result = await predictionData.getCurrentPrediction('十字窖#2');
+//     // 测试站点2的预测数据
+//     console.log('=== 测试站点2预测数据 ===');
+//     const result = await predictionData.getCurrentPrediction('站点2');
 //     console.log('✅ 测试成功！');
 //     console.log('📊 预测数据:', JSON.stringify(result, null, 2));
     

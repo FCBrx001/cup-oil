@@ -32,8 +32,8 @@ export default {
       selectedStation: 'huangpu',
       stationOptions: [
         { label: '黄埔', value: 'huangpu' },
-        { label: '十字窖#1', value: 'shizijiao1' },
-        { label: '十字窖#2', value: 'shizijiao2' },
+        { label: '十字窖', value: 'shizijiao1' },
+        { label: '站点2', value: 'shizijiao2' },
         { label: '东莞', value: 'dongguan' }
       ],
       stationData: {

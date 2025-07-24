@@ -15,28 +15,12 @@
       </div> -->
     <!-- </div> -->
 
-    <!-- 管段选择器 -->
+    <!-- 管段选择器 - 固定显示 -->
     <div class="pipeline-selector">
       <div class="select-wrapper">
         <div class="select-container">
-          <div class="select-display">
-            {{ currentPipelineLabel || '请选择管段' }}
-          </div>
-          <el-select 
-            v-model="selectedPipeline" 
-            placeholder="请选择管段" 
-            @change="handlePipelineChange" 
-            class="hidden-select"
-            popper-class="pipeline-dropdown">
-            <el-option
-              v-for="item in pipelineOptions"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value">
-            </el-option>
-          </el-select>
-          <div class="select-arrow">
-            <i class="el-icon-arrow-down"></i>
+          <div class="select-display-fixed">
+            黄埔 至 东莞
           </div>
         </div>
       </div>
@@ -263,8 +247,8 @@ export default {
       // 管段选项
       pipelineOptions: [
         { value: 'pipeline1', label: '黄埔 至 东莞' },
-        { value: 'pipeline2', label: '阳江 至 恩平' },
-        { value: 'pipeline3', label: '恩平 至 鹤山' }
+        // { value: 'pipeline2', label: '阳江 至 恩平' },
+        // { value: 'pipeline3', label: '恩平 至 鹤山' }
       ],
       
       // 管段数据
@@ -615,8 +599,7 @@ export default {
 }
 
 .select-container:hover {
-  box-shadow: 0 0 20px rgba(102, 223, 251, 0.5);
-  border-color: #8eecff;
+  /* 移除hover效果，因为不再是可点击的下拉框 */
 }
 
 .select-display {
@@ -632,6 +615,21 @@ export default {
   font-size: 15px;
   letter-spacing: 1px;
   pointer-events: none;
+}
+
+.select-display-fixed {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 15px;
+  letter-spacing: 1px;
+  cursor: default;
 }
 
 .hidden-select {
@@ -781,8 +779,11 @@ export default {
   transition: all 0.3s ease;
 }
 
-.detail-btn:hover {
-  color: #8eecff !important;
+.detail-btn:hover,
+.detail-btn:focus,
+.detail-btn:active,
+.detail-btn:visited {
+  color: #66dffb !important;
   transform: translateY(-2px);
 }
 

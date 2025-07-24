@@ -2,7 +2,7 @@ const http = require('http');
 
 console.log('开始测试...');
 
-const stationName = encodeURIComponent('十字窖#2');
+const stationName = encodeURIComponent('站点2');
 const options = {
   hostname: 'localhost',
   port: 3000,

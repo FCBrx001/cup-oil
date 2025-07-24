@@ -22,15 +22,15 @@ class MultiStationPredictionData_cube {
     this.local_db = null;
     
     this.stationCollectionMap = {
-      '十字窖#1': '阀室1预测数据',
-      '十字窖#2': '阀室2预测数据', 
+      '十字窖': '阀室1预测数据',
+      '站点2': '阀室2预测数据', 
       '黄埔': '黄埔站预测数据',
       '东莞': '东莞站预测数据'
     };
     
     this.stationFieldMap = {
-      '十字窖#1': { pressure: '阀室1预测压力', temperature: '阀室1预测温度' },
-      '十字窖#2': { pressure: '阀室2预测压力', temperature: '阀室2预测温度' },
+      '十字窖': { pressure: '阀室1预测压力', temperature: '阀室1预测温度' },
+      '站点2': { pressure: '阀室2预测压力', temperature: '阀室2预测温度' },
       '黄埔': { pressure: '黄埔站预测压力', temperature: '黄埔站预测温度' },
       '东莞': { pressure: '东莞站预测压力', temperature: '东莞站预测温度' }
     };
@@ -62,8 +62,8 @@ class MultiStationPredictionData_cube {
       return this.local_db;
     }
     try {
-      console.log('连接到本地预测数据库 (所有站点):', this.local_mongo_url);
-      this.local_client = new MongoClient(this.local_mongo_url, {
+      console.log('连接到本地预测数据库 (所有站点):', this.mongo_url);
+      this.local_client = new MongoClient(this.mongo_url, {
         useNewUrlParser: true, useUnifiedTopology: true,
         connectTimeoutMS: 5000, serverSelectionTimeoutMS: 5000,
       });
@@ -79,7 +79,7 @@ class MultiStationPredictionData_cube {
   // 重构：获取指定站点的预测数据
   async getStationPredictionData(stationName, dataIndex = null) {
     // 所有站点都使用本地数据库
-    const isLocal = true;
+    const isLocal = false;
 
     try {
       const db = isLocal

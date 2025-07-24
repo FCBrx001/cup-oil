@@ -557,8 +557,11 @@ export default {
   transition: all 0.3s ease;
 }
 
-.detail-btn:hover {
-  color: #8eecff !important;
+.detail-btn:hover,
+.detail-btn:focus,
+.detail-btn:active,
+.detail-btn:visited {
+  color: #66dffb !important;
   transform: translateY(-2px);
 }
 

@@ -101,7 +101,7 @@
 //   console.log('🚀 开始测试多站点预测数据API...');
   
 //   // 测试各个站点
-//   const stations = ['十字窖#1', '十字窖#2', '黄埔', '东莞'];
+//   const stations = ['十字窖', '站点2', '黄埔', '东莞'];
   
 //   // 单站点测试
 //   for (const station of stations) {
@@ -113,7 +113,7 @@
 //   await testBatchStationPrediction(stations);
   
 //   // 预测序列测试
-//   await testPredictionSequence('十字窖#2', 3);
+//   await testPredictionSequence('站点2', 3);
   
 //   console.log('\n🎉 所有测试完成!');
 // }
@@ -122,7 +122,7 @@
 // async function checkServerConnection() {
 //   try {
 //     console.log('🔍 检查服务器连接...');
-//     const response = await axios.get(`${BASE_URL}/prediction/station/十字窖#2/current`);
+//     const response = await axios.get(`${BASE_URL}/prediction/station/站点2/current`);
 //     console.log('✅ 服务器连接正常');
 //     return true;
 //   } catch (error) {

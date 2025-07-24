@@ -13,8 +13,8 @@ const countdownStore = new Vue({
           isActive: true
         },
         '高点#2': {
-          minutes: 42,
-          seconds: 15,
+          minutes: 2,
+          seconds: 30,
           isActive: true
         }
       },
@@ -82,7 +82,7 @@ const countdownStore = new Vue({
         if (pointName === '高点#1') {
           this.countdowns[pointName] = { minutes: 15, seconds: 30, isActive: true }
         } else if (pointName === '高点#2') {
-          this.countdowns[pointName] = { minutes: 42, seconds: 15, isActive: true }
+          this.countdowns[pointName] = { minutes: 2, seconds: 30, isActive: true }
         }
         
         this.$emit('countdown-reset', pointName)

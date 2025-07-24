@@ -19,7 +19,8 @@ class HuangpuDongguan_cube extends vis_cube{
         // 直接创建新的连接
         const MongoClient = require('mongodb').MongoClient;
         // 重新定义新URL
-        const newUrl = 'mongodb://localhost:27017/'; // <-- 修改为本地数据库
+        // const newUrl = 'mongodb://localhost:27017/'; // <-- 修改为本地数据库
+        const newUrl = 'mongodb://root:examplepassword@10.1.16.50:9101'; // <-- 修改为本地数据库
         // 创建新客户端
         this.newClient = new MongoClient(newUrl, {
             useNewUrlParser: true,
@@ -92,10 +93,10 @@ class HuangpuDongguan_cube extends vis_cube{
                         STN11_00_PI001: 2.5 + variation * 0.15,   // 东莞进站压力
                         STN10_00_TI002: 26.0 + variation,   // 黄埔出站温度
                         STN11_00_TI001: 24.5 + variation,   // 东莞进站温度
-                        STN10_05_PI501: 3.5 + variation * 0.1,   // 十字窖#1压力
-                        STN10_05_TI501: 25.0 + variation,   // 十字窖#1温度
-                        STN10_05_PI502: 3.6 + variation * 0.12,   // 十字窖#2压力
-                        STN10_05_TI502: 25.2 + variation,   // 十字窖#2温度
+                        STN10_05_PI501: 3.5 + variation * 0.1,   // 十字窖压力
+                        STN10_05_TI501: 25.0 + variation,   // 十字窖温度
+                        STN10_05_PI502: 3.6 + variation * 0.12,   // 站点2压力
+                        STN10_05_TI502: 25.2 + variation,   // 站点2温度
                         time: time.toISOString(),
                         _id: `mock_${i}`,
                         isMock: true
@@ -112,10 +113,10 @@ class HuangpuDongguan_cube extends vis_cube{
                 'STN11_00_PI001': 1,   // 东莞进站压力
                 'STN10_00_TI002': 1,   // 黄埔出站温度
                 'STN11_00_TI001': 1,   // 东莞进站温度
-                'STN10_05_PI501': 1,   // 十字窖#1压力
-                'STN10_05_TI501': 1,   // 十字窖#1温度
-                'STN10_05_PI502': 1,   // 十字窖#2压力
-                'STN10_05_TI502': 1,   // 十字窖#2温度
+                'STN10_05_PI501': 1,   // 十字窖压力
+                'STN10_05_TI501': 1,   // 十字窖温度
+                'STN10_05_PI502': 1,   // 站点2压力
+                'STN10_05_TI502': 1,   // 站点2温度
                 'time': 1,
                 '_id': 1
             };
@@ -155,10 +156,10 @@ class HuangpuDongguan_cube extends vis_cube{
                 'STN11_00_PI001': 1,   // 东莞进站压力
                 'STN10_00_TI002': 1,   // 黄埔出站温度
                 'STN11_00_TI001': 1,   // 东莞进站温度
-                'STN10_05_PI501': 1,   // 十字窖#1压力
-                'STN10_05_TI501': 1,   // 十字窖#1温度
-                'STN10_05_PI502': 1,   // 十字窖#2压力
-                'STN10_05_TI502': 1,   // 十字窖#2温度
+                'STN10_05_PI501': 1,   // 十字窖压力
+                'STN10_05_TI501': 1,   // 十字窖温度
+                'STN10_05_PI502': 1,   // 站点2压力
+                'STN10_05_TI502': 1,   // 站点2温度
                 'time': 1,
                 '_id': 1
             };
@@ -183,10 +184,10 @@ class HuangpuDongguan_cube extends vis_cube{
                             STN11_00_PI001: data['STN11_00_PI001'],   // 东莞进站压力
                             STN10_00_TI002: data['STN10_00_TI002'],   // 黄埔出站温度
                             STN11_00_TI001: data['STN11_00_TI001'],   // 东莞进站温度
-                            STN10_05_PI501: data['STN10_05_PI501'],   // 十字窖#1压力
-                            STN10_05_TI501: data['STN10_05_TI501'],   // 十字窖#1温度
-                            STN10_05_PI502: data['STN10_05_PI502'],   // 十字窖#2压力
-                            STN10_05_TI502: data['STN10_05_TI502'],   // 十字窖#2温度
+                            STN10_05_PI501: data['STN10_05_PI501'],   // 十字窖压力
+                            STN10_05_TI501: data['STN10_05_TI501'],   // 十字窖温度
+                            STN10_05_PI502: data['STN10_05_PI502'],   // 站点2压力
+                            STN10_05_TI502: data['STN10_05_TI502'],   // 站点2温度
                             
                             // 新增字段
                             environmentTemp: environmentTemp,  // 环境温度

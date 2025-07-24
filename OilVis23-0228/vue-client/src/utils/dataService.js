@@ -8,8 +8,8 @@ class DataService {
   constructor(store) {
     this.store = store
     this.timers = new Map()
-    this.baseURL = 'http://localhost:3000'
-    
+    this.baseURL = '/api'
+
     // 配置axios
     this.axios = axios.create({
       baseURL: this.baseURL,

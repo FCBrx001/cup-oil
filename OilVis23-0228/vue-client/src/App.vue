@@ -66,7 +66,7 @@ import { eventBus } from './main';
 		methods: {
 			contactSocket () {
 				if (window.WebSocket) {
-					this.ws = new WebSocket('ws://10.120.103.175:4000');
+					this.ws = new WebSocket('ws://10.120.230.248:4000');
 					this.ws.onopen = function () {
 						console.log('连接服务器成功')
 						ws.socket.send('你好服务器')

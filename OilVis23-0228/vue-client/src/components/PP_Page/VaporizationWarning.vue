@@ -101,9 +101,9 @@
                 <div class="warning-content">
                   <div class="warning-title">{{ selectedHighPoint.riskLevel === 'high' ? '高点汽化高风险预警' : '高点汽化中风险预警' }}</div>
                   <div class="warning-desc">
-                    {{ selectedHighPoint.riskLevel === 'high' ? 
-                    `当前压力接近临界压力，预计${selectedHighPoint.timeToVaporization}后达到汽化条件，请立即采取措施！` : 
-                    `压力下降速率较快，预计${selectedHighPoint.timeToVaporization}后达到预警阈值，请密切关注！` }}
+                    {{ selectedHighPoint.riskLevel === 'high' ?
+                    `当前压力接近临界压力，预计${sharedFormattedCountdowns[selectedHighPoint.name] || selectedHighPoint.timeToVaporization}后达到汽化条件，请立即采取措施！` :
+                    `压力下降速率较快，预计${sharedFormattedCountdowns[selectedHighPoint.name] || selectedHighPoint.timeToVaporization}后达到预警阈值，请密切关注！` }}
                   </div>
                 </div>
               </div>
@@ -113,7 +113,7 @@
                 <div class="countdown-title">{{ selectedHighPoint.riskLevel === 'high' ? '距离汽化还剩' : '距离临界还剩' }}</div>
                 <div class="countdown-box" :class="selectedHighPoint.riskLevel">
                   <div class="countdown-display">
-                    <span class="countdown">{{ selectedHighPoint.timeToVaporization }}</span>
+                    <span class="countdown">{{ sharedFormattedCountdowns[selectedHighPoint.name] || selectedHighPoint.timeToVaporization }}</span>
                   </div>
                 </div>
               </div>
@@ -164,7 +164,7 @@
                 </div>
                 <div class="info-item">
                   <span class="label">预计汽化时间：</span>
-                  <span class="value danger">{{ selectedHighPoint ? selectedHighPoint.timeToVaporization : '15:30' }}</span>
+                  <span class="value danger">{{ selectedHighPoint ? (sharedFormattedCountdowns[selectedHighPoint.name] || selectedHighPoint.timeToVaporization) : '15:30' }}</span>
                 </div>
               </div>
             </div>

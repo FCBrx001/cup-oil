@@ -6,7 +6,7 @@ Vue.use(Vuex);
 
 // 初始化四个站点的数据结构 - 分离预测和真实数据
 const initializeStationRealData = () => {
-    const stations = ['十字窖#1', '十字窖#2', '黄埔', '东莞'];
+    const stations = ['十字窖', '站点2', '黄埔', '东莞'];
     const stationData = {};
     
     stations.forEach(stationName => {
@@ -20,7 +20,7 @@ const initializeStationRealData = () => {
 };
 
 const initializeStationPredictionData = () => {
-    const stations = ['十字窖#1', '十字窖#2', '黄埔', '东莞'];
+    const stations = ['十字窖', '站点2', '黄埔', '东莞'];
     const stationData = {};
     
     stations.forEach(stationName => {
@@ -131,7 +131,7 @@ const store=new Vuex.Store({
             stationData.push([time, value]);
             
             // 限制数据点数量
-            if (stationData.length > 200) {
+            if (stationData.length >200) {
                 stationData.shift();
             }
             
@@ -351,11 +351,8 @@ const store=new Vuex.Store({
                 
                 console.log(`📊 Vuex Action: 尝试获取 ${stationName} 预测数据，数量: ${count}...`);
                 
-                // 正确设置API基础路径
-                const baseUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000';
-                
-                // 构建完整的API URL
-                const apiUrl = `${baseUrl}/prediction/station/${encodeURIComponent(stationName)}/sequence?count=${count}`;
+                // 使用代理路径
+                const apiUrl = `/api/prediction/station/${encodeURIComponent(stationName)}/sequence?count=${count}`;
                 console.log(`📡 API请求: ${apiUrl}`);
                 
                 // 获取存储的token
@@ -641,11 +638,8 @@ const store=new Vuex.Store({
                 const nextIndex = stationData.temperature.length;
                 console.log(`⏰ Vuex Action: [${stationName}] 正在获取索引为 ${nextIndex} 的新预测数据...`);
                 
-                // 正确设置API基础路径 
-                const baseUrl = process.env.NODE_ENV === 'production' ? '' : 'http://localhost:3000';
-                
-                // 构建完整的API URL
-                const apiUrl = `${baseUrl}/prediction/station/${encodeURIComponent(stationName)}/indexed/${nextIndex}`;
+                // 使用代理路径
+                const apiUrl = `/api/prediction/station/${encodeURIComponent(stationName)}/indexed/${nextIndex}`;
                 
                 // 获取存储的token
                 const token = sessionStorage.getItem('token');

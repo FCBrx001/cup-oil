@@ -65,7 +65,7 @@
 //     // 测试单站点预测数据接口
 //     {
 //       path: '/prediction/station/十字窖%232/current',
-//       description: '十字窖#2当前预测数据'
+//       description: '站点2当前预测数据'
 //     }
 //   ];
 

@@ -126,12 +126,12 @@
 //     {
 //       type: 'GET',
 //       path: '/prediction/station/十字窖%231/current',
-//       description: '十字窖#1当前预测数据'
+//       description: '十字窖当前预测数据'
 //     },
 //     {
 //       type: 'GET', 
 //       path: '/prediction/station/十字窖%232/current',
-//       description: '十字窖#2当前预测数据'
+//       description: '站点2当前预测数据'
 //     },
 //     {
 //       type: 'GET',
@@ -149,17 +149,17 @@
 //       type: 'POST',
 //       path: '/prediction/stations/batch',
 //       body: {
-//         stationNames: ['十字窖#1', '十字窖#2'],
+//         stationNames: ['十字窖', '站点2'],
 //         dataType: 'current'
 //       },
-//       description: '批量获取预测数据（十字窖#1、#2）'
+//       description: '批量获取预测数据（十字窖、#2）'
 //     },
     
 //     // 测试序列预测数据接口
 //     {
 //       type: 'GET',
 //       path: '/prediction/station/十字窖%232/sequence',
-//       description: '十字窖#2序列预测数据'
+//       description: '站点2序列预测数据'
 //     }
 //   ];
 

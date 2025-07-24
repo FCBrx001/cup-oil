@@ -92,7 +92,7 @@
                   </div>
                 </div>
                 <!-- 倒计时控制按钮 -->
-                <div class="countdown-controls" v-if="sharedCountdowns[selectedHighPoint.name]">
+                <!-- <div class="countdown-controls" v-if="sharedCountdowns[selectedHighPoint.name]">
                                       <el-button 
                       size="mini" 
                       :type="sharedCountdowns[selectedHighPoint.name].isActive ? 'warning' : 'primary'"
@@ -109,7 +109,7 @@
                   >
                     重置
                   </el-button>
-                </div>
+                </div> -->
               </div>
             </div>
           </div>
@@ -439,18 +439,7 @@ export default {
           color: '#fff',
           fontSize: 9,
           fontWeight: 'bold',
-          formatter: `{a|${point.name}}\n{b|${point.elevation.toFixed(1)}m}`, // 显示名称和高程
-          rich: {
-            a: {
-              fontSize: 9,
-              fontWeight: 'bold',
-              color: '#fff'
-            },
-            b: {
-              fontSize: 8,
-              color: 'rgba(255,255,255,0.8)'
-            }
-          },
+          formatter: `${point.name}`, // 只显示名称
           backgroundColor: point.riskLevel === 'high' ? 'rgba(255, 77, 79, 0.9)' : 
                           point.riskLevel === 'warning' ? 'rgba(250, 173, 20, 0.9)' : 'rgba(82, 196, 26, 0.9)',
           padding: [2, 4],
@@ -461,22 +450,19 @@ export default {
         emphasis: {
           scale: 1.8,
           itemStyle: {
+            opacity: 0.2, // 点本身更暗
+            borderColor: point.riskLevel === 'high' ? 'rgba(255,77,79,0.2)' :
+                          point.riskLevel === 'warning' ? 'rgba(250,173,20,0.2)' : 'rgba(82,196,26,0.2)',
             shadowBlur: 10,
-            shadowColor: point.riskLevel === 'high' ? '#ff4d4f' : 
-                        point.riskLevel === 'warning' ? '#faad14' : '#52c41a'
+            shadowColor: point.riskLevel === 'high' ? 'rgba(255,77,79,0.2)' :
+                        point.riskLevel === 'warning' ? 'rgba(250,173,20,0.2)' : 'rgba(82,196,26,0.2)'
           },
           label: {
             fontSize: 10,
             distance: 8,
-            rich: {
-              a: {
-                fontSize: 10,
-                fontWeight: 'bold'
-              },
-              b: {
-                fontSize: 9
-              }
-            }
+            backgroundColor: point.riskLevel === 'high' ? 'rgba(255,77,79,0.3)' :
+                             point.riskLevel === 'warning' ? 'rgba(250,173,20,0.3)' : 'rgba(82,196,26,0.3)',
+            color: 'rgba(255,255,255,0.5)'
           }
         }
       }));
@@ -559,30 +545,64 @@ export default {
               backgroundColor: '#6a7985'
             }
           },
-          backgroundColor: 'rgba(0,0,0,0.8)',
+          backgroundColor: 'rgba(0,0,0,0.9)',
           borderColor: '#1a9bfc',
           borderWidth: 1,
           textStyle: {
-            color: '#fff'
+            color: '#fff',
+            fontSize: 12
+          },
+          padding: [8, 12],
+          extraCssText: 'box-shadow: 0 0 10px rgba(0,0,0,0.5); border-radius: 4px;',
+          confine: true, // 限制在图表区域内
+          position: function (point, params, dom, rect, size) {
+            // 智能定位，避免遮挡
+            const chartWidth = size.viewSize[0];
+            const chartHeight = size.viewSize[1];
+            const tooltipWidth = size.contentSize[0];
+            const tooltipHeight = size.contentSize[1];
+            
+            let x = point[0] + 10; // 默认在鼠标右侧
+            let y = point[1] - tooltipHeight / 2; // 垂直居中
+            
+            // 如果右侧空间不够，显示在左侧
+            if (x + tooltipWidth > chartWidth) {
+              x = point[0] - tooltipWidth - 10;
+            }
+            
+            // 如果上方空间不够，调整到下方
+            if (y < 0) {
+              y = 10;
+            }
+            
+            // 如果下方空间不够，调整到上方
+            if (y + tooltipHeight > chartHeight) {
+              y = chartHeight - tooltipHeight - 10;
+            }
+            
+            return [x, y];
           },
           formatter: function(params) {
             const mileage = params[0].data[0]
-            let html = `<div style="font-weight:bold;margin-bottom:5px;">里程: ${mileage.toFixed(3)} km</div>`
+            let html = `<div style="font-weight:bold;margin-bottom:8px;color:#1a9bfc;border-bottom:1px solid rgba(26,155,252,0.3);padding-bottom:5px;">里程: ${mileage.toFixed(3)} km</div>`
             
             params.forEach(param => {
-              const value = param.data[1]
+              const value = parseFloat(param.data[1])
               const unit = param.seriesName.includes('压力') ? ' MPa' : 
                           param.seriesName.includes('温度') ? ' ℃' : ' m'
               
               // 为负值高程添加特殊样式
               let valueStyle = ''
-              if (param.seriesName.includes('高程') && parseFloat(value) < 0) {
+              if (param.seriesName.includes('高程') && value < 0) {
                 valueStyle = 'color: #ff6b6b; font-weight: bold;'
               }
               
-              html += `<div style="margin:3px 0;">
-                        ${param.marker} ${param.seriesName}: 
-                        <span style="font-weight:bold; ${valueStyle}">${value}${unit}</span>
+              html += `<div style="margin:5px 0;display:flex;align-items:center;justify-content:space-between;">
+                        <span style="display:flex;align-items:center;">
+                          ${param.marker} 
+                          <span style="margin-left:5px;">${param.seriesName}</span>
+                        </span>
+                        <span style="font-weight:bold;margin-left:10px;${valueStyle}">${value.toFixed(3)}${unit}</span>
                        </div>`
             })
             return html

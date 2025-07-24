@@ -844,6 +844,7 @@ import TestChart from '../PP_Page/test.vue'; // 引入组件，使用驼峰命�
 import PreChart from '../PP_Page/Pre_chart.vue';
 import TestChart22 from '../../views/test_chart.vue';
 import { test } from 'shelljs';
+import countdownStore from '@/store/countdown';
 
 export default {
     name: 'mmyj_Page',
@@ -987,16 +988,9 @@ export default {
             dialogVisible: false,
             valveDetailVisible: false,
             selectedValve: null,
-            countdowns: {
-                '阀室#1': {
-                    minutes: 12,
-                    seconds: 30
-                },
-                '阀室#2': {
-                    minutes: 35,
-                    seconds: 45
-                }
-            },
+            // 使用共享的倒计时状态
+            sharedCountdowns: {},
+            sharedFormattedCountdowns: {},
             countdownTimer: null,
             alarmDialogVisible: false,
             selectedAlarmLevel: 'low',
@@ -1025,9 +1019,10 @@ export default {
     },
     computed: {
         formattedCountdowns() {
+            // 使用共享的倒计时数据，映射阀室名称到高点名称
             return {
-                '阀室#1': `${this.countdowns['阀室#1'].minutes.toString().padStart(2, '0')}:${this.countdowns['阀室#1'].seconds.toString().padStart(2, '0')}`,
-                '阀室#2': `${this.countdowns['阀室#2'].minutes.toString().padStart(2, '0')}:${this.countdowns['阀室#2'].seconds.toString().padStart(2, '0')}`
+                '阀室#1': this.sharedFormattedCountdowns['高点#1'] || '15:30',
+                '阀室#2': this.sharedFormattedCountdowns['高点#2'] || '42:15'
             }
         },
         currentPipelineData() {
@@ -1131,7 +1126,7 @@ export default {
                     }
                 },
             }, {
-                name: "十字窖#1",
+                name: "十字窖",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -1148,7 +1143,7 @@ export default {
                 },
             },
             {
-                name: "十字窖#2",
+                name: "站点2",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -1276,7 +1271,7 @@ export default {
                     }
                 },
             }, {
-                name: "十字窖#10",
+                name: "十字窖0",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -1292,7 +1287,7 @@ export default {
                     }
                 },
             }, {
-                name: "十字窖#11",
+                name: "十字窖1",
                 category: 0,
                 active: false,
                 symbolSize: 10,
@@ -2375,8 +2370,11 @@ export default {
     transition: all 0.3s ease;
 }
 
-.more-btn:hover {
-    color: #36a6fc !important;
+.more-btn:hover,
+.more-btn:focus,
+.more-btn:active,
+.more-btn:visited {
+    color: #1a9bfc !important;
     transform: translateX(5px);
 }
 

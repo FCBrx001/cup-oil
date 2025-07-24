@@ -4,8 +4,8 @@ async function testPredictionAll() {
   console.log('🧪 测试获取所有预测数据功能...\n');
   
   try {
-    // 测试获取十字窖#2的所有预测数据
-    console.log('🌐 测试API: GET /prediction/station/十字窖#2/all');
+    // 测试获取站点2的所有预测数据
+    console.log('🌐 测试API: GET /prediction/station/站点2/all');
     
     const response = await axios.get('http://localhost:3000/prediction/station/十字窖%232/all');
     

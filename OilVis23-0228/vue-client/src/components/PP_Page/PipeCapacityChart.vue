@@ -63,18 +63,58 @@ export default {
               backgroundColor: '#283b56'
             }
           },
-          formatter: function (params) {
-            const data = volumeData[params[0].dataIndex];
-            return `停输后 ${params[0].axisValue} 小时<br/>
-                   压力: ${data.pressure.toFixed(2)} MPa<br/>
-                   温度: ${data.temperature.toFixed(1)} ℃<br/>
-                   管容量: ${data.volume.toFixed(0)} m³`;
-          },
-          backgroundColor: 'rgba(0,21,41,0.8)',
+          backgroundColor: 'rgba(0,21,41,0.9)',
           borderColor: '#66dffb',
           borderWidth: 1,
           textStyle: {
-            color: '#fff'
+            color: '#fff',
+            fontSize: 12
+          },
+          padding: [8, 12],
+          extraCssText: 'box-shadow: 0 0 10px rgba(0,0,0,0.5); border-radius: 4px;',
+          confine: true, // 限制在图表区域内
+          position: function (point, params, dom, rect, size) {
+            // 智能定位，避免遮挡
+            const chartWidth = size.viewSize[0];
+            const chartHeight = size.viewSize[1];
+            const tooltipWidth = size.contentSize[0];
+            const tooltipHeight = size.contentSize[1];
+            
+            let x = point[0] + 10; // 默认在鼠标右侧
+            let y = point[1] - tooltipHeight / 2; // 垂直居中
+            
+            // 如果右侧空间不够，显示在左侧
+            if (x + tooltipWidth > chartWidth) {
+              x = point[0] - tooltipWidth - 10;
+            }
+            
+            // 如果上方空间不够，调整到下方
+            if (y < 0) {
+              y = 10;
+            }
+            
+            // 如果下方空间不够，调整到上方
+            if (y + tooltipHeight > chartHeight) {
+              y = chartHeight - tooltipHeight - 10;
+            }
+            
+            return [x, y];
+          },
+          formatter: function (params) {
+            const data = volumeData[params[0].dataIndex];
+            return `<div style="font-weight:bold;margin-bottom:8px;color:#66dffb;border-bottom:1px solid rgba(102,223,251,0.3);padding-bottom:5px;">停输后 ${params[0].axisValue} 小时</div>
+                    <div style="margin:5px 0;display:flex;align-items:center;justify-content:space-between;">
+                      <span>压力:</span>
+                      <span style="font-weight:bold;margin-left:10px;color:#ff6b6b;">${data.pressure.toFixed(2)} MPa</span>
+                    </div>
+                    <div style="margin:5px 0;display:flex;align-items:center;justify-content:space-between;">
+                      <span>温度:</span>
+                      <span style="font-weight:bold;margin-left:10px;color:#ffd166;">${data.temperature.toFixed(1)} ℃</span>
+                    </div>
+                    <div style="margin:5px 0;display:flex;align-items:center;justify-content:space-between;">
+                      <span>管容量:</span>
+                      <span style="font-weight:bold;margin-left:10px;color:#00ffaa;">${data.volume.toFixed(0)} m³</span>
+                    </div>`;
           }
         },
         legend: {

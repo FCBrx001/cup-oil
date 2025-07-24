@@ -1,5 +1,5 @@
 'use strict'
-// Template version: 1.3.1
+// Template version: 1.3.1  
 // see http://vuejs-templates.github.io/webpack for documentation.
 
 const path = require('path')
@@ -12,7 +12,8 @@ module.exports = {
     proxyTable: {
       '/api':{
         // target:'http://10.16.144.241:3000/',
-        target:'http://127.0.0.1:3000',//宿舍
+        // target:'http://127.0.0.1:3000',//宿舍 - 仅本地访问
+        target:'http://10.120.230.248:3000',//局域网访问 - 其他电脑可访问 10.120.106.165
         // target:'http://192.168.1.103:3000/',//实验室
         changeOrigin:true,
         pathRewrite:{
@@ -22,8 +23,9 @@ module.exports = {
     },
     // Various Dev Server settings
     // host: '10.16.144.241',
-    host: '127.0.0.1', //宿舍
+    // host: '127.0.0.1', //宿舍
     // host: '192.168.1.103', // can be overwritten by process.env.HOST
+    host: '0.0.0.0', // 允许外部访问，同时显示本地和局域网地址
     port: 9000, // can be overwritten by process.env.PORT, if port is in use, a free one will be determined
     autoOpenBrowser: false,
     errorOverlay: true,

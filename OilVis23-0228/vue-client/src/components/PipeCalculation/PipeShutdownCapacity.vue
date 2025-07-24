@@ -285,13 +285,49 @@ export default {
               backgroundColor: '#6a7985'
             }
           },
-          formatter: function(params) {
-            return `时间: ${params[0].axisValue}h<br>容量: ${params[0].data}m³`;
-          },
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          borderColor: 'rgba(0, 102, 255, 0.7)',
+          backgroundColor: 'rgba(0, 0, 0, 0.9)',
+          borderColor: 'rgba(0, 102, 255, 0.8)',
+          borderWidth: 1,
           textStyle: {
-            color: '#fff'
+            color: '#fff',
+            fontSize: 12
+          },
+          padding: [8, 12],
+          extraCssText: 'box-shadow: 0 0 10px rgba(0,0,0,0.5); border-radius: 4px;',
+          confine: true, // 限制在图表区域内
+          position: function (point, params, dom, rect, size) {
+            // 智能定位，避免遮挡
+            const chartWidth = size.viewSize[0];
+            const chartHeight = size.viewSize[1];
+            const tooltipWidth = size.contentSize[0];
+            const tooltipHeight = size.contentSize[1];
+            
+            let x = point[0] + 10; // 默认在鼠标右侧
+            let y = point[1] - tooltipHeight / 2; // 垂直居中
+            
+            // 如果右侧空间不够，显示在左侧
+            if (x + tooltipWidth > chartWidth) {
+              x = point[0] - tooltipWidth - 10;
+            }
+            
+            // 如果上方空间不够，调整到下方
+            if (y < 0) {
+              y = 10;
+            }
+            
+            // 如果下方空间不够，调整到上方
+            if (y + tooltipHeight > chartHeight) {
+              y = chartHeight - tooltipHeight - 10;
+            }
+            
+            return [x, y];
+          },
+          formatter: function(params) {
+            return `<div style="font-weight:bold;margin-bottom:8px;color:#0066ff;border-bottom:1px solid rgba(0,102,255,0.3);padding-bottom:5px;">停输时间: ${params[0].axisValue}h</div>
+                    <div style="display:flex;align-items:center;justify-content:space-between;">
+                      <span>管容量:</span>
+                      <span style="font-weight:bold;margin-left:10px;color:#00ffaa;">${params[0].data}m³</span>
+                    </div>`;
           }
         },
         grid: {
