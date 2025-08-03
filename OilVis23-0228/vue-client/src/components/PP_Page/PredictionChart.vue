@@ -7,9 +7,9 @@
       <div class="chart-controls">
         <!-- 选中站点标签显示 -->
         <div class="selected-valves">
-          <!-- 真实选中的站点标签 -->
+          <!-- 按优先级排序的站点标签 -->
           <el-tag
-            v-for="(valve, index) in selectedValves"
+            v-for="(valve, index) in sortedSelectedValves"
             :key="valve.valveName"
             size="small"
             :type="getTagType(index)"
@@ -36,51 +36,55 @@
         <!-- 显示选项切换按钮 -->
         <div class="chart-toggle">
           <div class="toggle-buttons">
-            <button 
-              class="toggle-btn"
-              :class="{ active: showTemperature }"
-              @click="toggleTemperature"
-            >
-              <i class="icon-temperature"></i>
-              温度
-            </button>
-            <button 
-              class="toggle-btn"
-              :class="{ active: showPressure }"
-              @click="togglePressure"
-            >
-              <i class="icon-pressure"></i>
-              压力
-            </button>
-            <!-- 测试按钮 -->
-            <!-- <button 
-              class="toggle-btn"
-              @click="testPredictionData"
-              style="background: rgba(255, 193, 7, 0.1); border-color: rgba(255, 193, 7, 0.6);"
-            >
-              🧪 测试预测
-            </button> -->
+            <!-- 单站点模式：显示温度/压力切换按钮 -->
+            <template v-if="!isDualStationMode">
+              <button 
+                class="toggle-btn"
+                :class="{ active: showTemperature }"
+                @click="toggleTemperature"
+              >
+                <i class="icon-temperature"></i>
+                温度
+              </button>
+              <button 
+                class="toggle-btn"
+                :class="{ active: showPressure }"
+                @click="togglePressure"
+              >
+                <i class="icon-pressure"></i>
+                压力
+              </button>
+            </template>
+            
+            <!-- 双站点模式：显示对比类型切换按钮 -->
+            <template v-else>
+              <button 
+                class="toggle-btn"
+                :class="{ active: dualCompareType === 'pressure' }"
+                @click="setDualCompareType('pressure')"
+              >
+                <i class="icon-pressure"></i>
+                压力对比
+              </button>
+              <button 
+                class="toggle-btn"
+                :class="{ active: dualCompareType === 'temperature' }"
+                @click="setDualCompareType('temperature')"
+              >
+                <i class="icon-temperature"></i>
+                温度对比
+              </button>
+ 
+            </template>
           </div>
         </div>
       </div>
     </div>
     
     <div class="chart-body">
-      <!-- 双图表模式（多站点对比）-->
-      <div v-if="shouldUseDualCharts" class="dual-chart-container">
-        <div class="chart-section">
-          <div class="chart-section-title">温度对比</div>
-          <div id="temperature_chart" style="width:100%; height:300px;"></div>
-        </div>
-        <div class="chart-section">
-          <div class="chart-section-title">压力对比</div>
-          <div id="pressure_chart" style="width:100%; height:300px;"></div>
-        </div>
-      </div>
-      
-      <!-- 单图表模式（默认或单站点）-->
-      <div v-else>
-        <div id="prediction_chart" style="width:100%; height:350px;  margin-left: -50px;"></div>
+      <!-- 统一使用单图表模式 -->
+      <div>
+        <div id="prediction_chart" style="width:100%; height:350px; margin-left: -50px;"></div>
       </div>
     </div>
     
@@ -123,6 +127,12 @@ export default {
       // 显示选项
       displayOptions: ['temperature', 'pressure'],
       
+      // 双站点对比模式下的显示类型：'temperature' 或 'pressure'
+      dualCompareType: 'temperature',
+      
+      // 站点显示优先级顺序
+      stationPriority: ['黄埔', '十字窖', '站点2', '东莞'],
+      
       // 颜色配置
       stationColors: [
         '#66dffb', '#52c41a', '#1890ff', '#13c2c2', 
@@ -149,11 +159,32 @@ export default {
       return this.displayOptions.includes('pressure');
     },
     shouldUseDualCharts() {
+      return false; // 不再使用双图表模式，统一使用单图表
+    },
+    isDualStationMode() {
       return this.selectedValves && this.selectedValves.length === 2;
     },
+    // 按照优先级排序的选中站点
+    sortedSelectedValves() {
+      if (!this.selectedValves || this.selectedValves.length === 0) {
+        return [];
+      }
+      
+      // 按照站点优先级排序
+      return [...this.selectedValves].sort((a, b) => {
+        const priorityA = this.stationPriority.indexOf(a.valveName);
+        const priorityB = this.stationPriority.indexOf(b.valveName);
+        
+        // 如果站点不在优先级列表中，放到最后
+        if (priorityA === -1) return 1;
+        if (priorityB === -1) return -1;
+        
+        return priorityA - priorityB;
+      });
+    },
     currentStationName() {
-      return this.selectedValves.length > 0 
-        ? this.selectedValves[0].valveName 
+      return this.sortedSelectedValves.length > 0 
+        ? this.sortedSelectedValves[0].valveName 
         : '黄埔';
     },
     chartTitle() {
@@ -224,12 +255,9 @@ export default {
       this.$nextTick(() => {
         setTimeout(() => {
           try {
-            if (this.shouldUseDualCharts) {
-              this.initDualCharts();
-            } else {
-              this.initSingleChart();
-            }
-        this.drawCharts();
+            // 统一使用单图表
+            this.initSingleChart();
+            this.drawCharts();
           } catch (error) {
             console.error('初始化图表失败:', error);
             // 再次尝试初始化，有时DOM可能未完全准备好
@@ -245,12 +273,9 @@ export default {
       this.$nextTick(() => {
         setTimeout(() => {
           try {
-          if (this.shouldUseDualCharts) {
-            this.initDualCharts();
-          } else {
+            // 统一使用单图表
             this.initSingleChart();
-          }
-          this.drawCharts();
+            this.drawCharts();
             
             // 只有在首次加载时才启动数据获取
             if (!this.dataInitialized) {
@@ -270,11 +295,8 @@ export default {
     retryInitChart() {
       try {
         console.log('重试初始化图表...');
-        if (this.shouldUseDualCharts) {
-          this.initDualCharts();
-        } else {
-          this.initSingleChart();
-        }
+        // 统一使用单图表
+        this.initSingleChart();
         this.drawCharts();
       } catch (error) {
         console.error('重试初始化图表失败:', error);
@@ -346,13 +368,12 @@ export default {
 
       this.drawChartsTimer = setTimeout(() => {
         try {
-          // 添加数据状态检查
-          if (this.shouldUseDualCharts) {
-            const [station1, station2] = this.selectedValves.map(v => v.valveName);
-            console.log(`🎯 双图表模式 - 站点: ${station1} vs ${station2}`);
-            this.drawDualCharts();
+          if (this.isDualStationMode) {
+            const [station1, station2] = this.sortedSelectedValves.map(v => v.valveName);
+            console.log(`🎯 双站点对比模式 - 站点: ${station1} vs ${station2}, 类型: ${this.dualCompareType}`);
+            this.drawDualStationCompareChart();
           } else {
-            console.log(`🎯 单图表模式 - 站点: ${this.currentStationName}`);
+            console.log(`🎯 单站点模式 - 站点: ${this.currentStationName}`);
             this.drawPredictionChart();
           }
         } catch (error) {
@@ -363,7 +384,15 @@ export default {
 
     drawPredictionChart() {
       if (!this.prediction_chart) return;
-      const option = this.getBaseChartOption(this.currentStationName);
+      
+      let option;
+      if (this.isDualStationMode) {
+        // 双站点对比模式
+        option = this.getDualStationCompareOption();
+      } else {
+        // 单站点模式
+        option = this.getBaseChartOption(this.currentStationName);
+      }
 
       // 获取当前的 dataZoom 状态
       const currentOption = this.prediction_chart.getOption();
@@ -375,6 +404,11 @@ export default {
         // 首次加载或需要重置时使用完整更新
         this.prediction_chart.setOption(option, true);
       }
+    },
+
+    // 新方法：绘制双站点对比图表（保持兼容性）
+    drawDualStationCompareChart() {
+      this.drawPredictionChart();
     },
 
     drawDualCharts() {
@@ -412,22 +446,165 @@ export default {
 
     // 重置 dataZoom 到默认状态（在切换站点或参数时使用）
     resetDataZoom() {
-      if (this.shouldUseDualCharts) {
-        const [station1, station2] = this.selectedValves.map(v => v.valveName);
-        if (this.temperature_chart) {
-          const temperatureOption = this.getDualTemperatureChartOption(station1, station2);
-          this.temperature_chart.setOption(temperatureOption, true);
+      if (this.prediction_chart) {
+        let option;
+        if (this.isDualStationMode) {
+          option = this.getDualStationCompareOption();
+        } else {
+          option = this.getBaseChartOption(this.currentStationName);
         }
-        if (this.pressure_chart) {
-          const pressureOption = this.getDualPressureChartOption(station1, station2);
-          this.pressure_chart.setOption(pressureOption, true);
-        }
-      } else {
-        if (this.prediction_chart) {
-          const option = this.getBaseChartOption(this.currentStationName);
-          this.prediction_chart.setOption(option, true);
-        }
+        this.prediction_chart.setOption(option, true);
       }
+    },
+
+    // 生成双站点对比图表配置
+    getDualStationCompareOption() {
+      const [station1, station2] = this.sortedSelectedValves.map(v => v.valveName);
+      const stationData1 = this.getCombinedStationData(station1);
+      const stationData2 = this.getCombinedStationData(station2);
+
+      // 获取站点颜色
+      const station1Colors = this.getStationColors(station1);
+      const station2Colors = this.getStationColors(station2);
+
+      let series = [];
+      let yAxis = [];
+      let dataType = '';
+
+      if (this.dualCompareType === 'temperature') {
+        // 温度对比
+        dataType = '温度';
+        const tempRange = this.calculateDataRange([
+          stationData1.temperature.actual,
+          stationData1.temperature.prediction,
+          stationData2.temperature.actual,
+          stationData2.temperature.prediction
+        ], '温度');
+
+        series = [
+          { 
+            name: `${station1}实际温度`, 
+            type: 'line', 
+            data: stationData1.temperature.actual, 
+            ...this.getSeriesStyleWithColor('actual_temp', station1Colors.actual)
+          },
+          { 
+            name: `${station1}预测温度`, 
+            type: 'line', 
+            data: stationData1.temperature.prediction, 
+            ...this.getSeriesStyleWithColor('prediction_temp', station1Colors.prediction)
+          },
+          { 
+            name: `${station2}实际温度`, 
+            type: 'line', 
+            data: stationData2.temperature.actual, 
+            ...this.getSeriesStyleWithColor('actual_temp', station2Colors.actual)
+          },
+          { 
+            name: `${station2}预测温度`, 
+            type: 'line', 
+            data: stationData2.temperature.prediction, 
+            ...this.getSeriesStyleWithColor('prediction_temp', station2Colors.prediction)
+          }
+        ];
+
+        yAxis = [{
+          min: tempRange.min, max: tempRange.max, type: 'value', name: '温度 (℃)',
+          position: 'left',
+          nameTextStyle: { color: '#ffd166', fontSize: 12 },
+          axisLine: { show: true, lineStyle: { color: '#ffd166', width: 2 } },
+          axisLabel: { color: '#ffd166', fontSize: 11, formatter: '{value}℃' },
+          splitLine: { show: false },
+          axisTick: {
+            show: true,
+            lineStyle: { color: '#ffd166', width: 1 },
+            length: 6,
+            inside: false
+          }
+        }];
+      } else {
+        // 压力对比
+        dataType = '压力';
+        const pressureRange = this.calculateDataRange([
+          stationData1.pressure.actual,
+          stationData1.pressure.prediction,
+          stationData2.pressure.actual,
+          stationData2.pressure.prediction
+        ], '压力');
+
+        series = [
+          { 
+            name: `${station1}实际压力`, 
+            type: 'line', 
+            data: stationData1.pressure.actual, 
+            ...this.getSeriesStyleWithColor('actual_pressure', station1Colors.actual)
+          },
+          { 
+            name: `${station1}预测压力`, 
+            type: 'line', 
+            data: stationData1.pressure.prediction, 
+            ...this.getSeriesStyleWithColor('prediction_pressure', station1Colors.prediction)
+          },
+          { 
+            name: `${station2}实际压力`, 
+            type: 'line', 
+            data: stationData2.pressure.actual, 
+            ...this.getSeriesStyleWithColor('actual_pressure', station2Colors.actual)
+          },
+          { 
+            name: `${station2}预测压力`, 
+            type: 'line', 
+            data: stationData2.pressure.prediction, 
+            ...this.getSeriesStyleWithColor('prediction_pressure', station2Colors.prediction)
+          }
+        ];
+
+        yAxis = [{
+          min: pressureRange.min, max: pressureRange.max, type: 'value', name: '压力 (MPa)',
+          position: 'left',
+          nameTextStyle: { color: '#ff6b6b', fontSize: 12 },
+          axisLine: { show: true, lineStyle: { color: '#ff6b6b', width: 2 } },
+          axisLabel: { color: '#ff6b6b', fontSize: 11, formatter: '{value}MPa' },
+          splitLine: { show: false },
+          axisTick: {
+            show: true,
+            lineStyle: { color: '#ff6b6b', width: 1 },
+            length: 6,
+            inside: false
+          }
+        }];
+      }
+
+      console.log(`🎯 双站点${dataType}对比:`, {
+        station1: station1,
+        station2: station2,
+        dataType: dataType,
+        seriesCount: series.length
+      });
+
+      return {
+        backgroundColor: 'transparent',
+        title: { 
+          text: `${station1} vs ${station2} (${dataType})`, 
+          left: 'center', 
+          textStyle: { color: '#66dffb', fontSize: 14 } 
+        },
+        tooltip: { trigger: 'axis', ...this.getBaseTooltipStyle() },
+        legend: {
+          top: 25,
+          textStyle: { color: '#66dffb', fontSize: 12 },
+          itemWidth: 30,
+          itemHeight: 4,
+          itemGap: 20,
+          symbolKeepAspect: false
+        },
+        grid: { left: '12%', right: '8%', bottom: '18%', top: '30%', containLabel: true },
+        xAxis: { type: 'time', ...this.getBaseAxisStyle() },
+        yAxis: yAxis,
+        dataZoom: this.getBaseDataZoom(),
+        graphic: this.getDataZoomLabels(stationData1),
+        series: series
+      };
     },
 
     // 生成双站点温度对比图表配置
@@ -1140,6 +1317,13 @@ export default {
       this.drawCharts();
     },
 
+    // 设置双站点对比类型
+    setDualCompareType(type) {
+      console.log(`切换双站点对比类型: ${this.dualCompareType} -> ${type}`);
+      this.dualCompareType = type;
+      this.drawCharts();
+    },
+
     testPredictionData() {
         // 始终为所有站点测试预测数据，不依赖于选中状态
         const stationsToTest = ['十字窖', '站点2', '黄埔', '东莞'];
@@ -1393,9 +1577,9 @@ export default {
     
     selectedValves: {
       handler() {
-        console.log('监听到阀门选择变化，重新初始化图表并重置dataZoom...');
-        // 重新初始化图表以匹配单/双图表模式，并重置dataZoom
-        this.initChartOnly();
+        console.log('监听到阀门选择变化，重新绘制图表...');
+        // 重新绘制图表
+        this.drawCharts();
         // 延迟重置dataZoom，确保图表已经初始化完成
         this.$nextTick(() => {
           setTimeout(() => {
@@ -1404,6 +1588,16 @@ export default {
         });
       },
       deep: true
+    },
+
+    // 监听双站点对比类型变化
+    dualCompareType() {
+      console.log('监听到对比类型变化，重置dataZoom...');
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.resetDataZoom();
+        }, 100);
+      });
     },
 
     // 监听温度/压力按钮变化，在参数切换时重置dataZoom

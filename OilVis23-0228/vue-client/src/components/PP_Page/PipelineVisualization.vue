@@ -18,6 +18,14 @@
             <span class="parameter-value" :class="environmentTempStatus">{{ displayEnvironmentTemp }}</span>
           </div>
           <div class="parameter-item">
+            <span class="parameter-label">黄埔站油品压力</span>
+            <span class="parameter-value" :class="outletPressureStatus">{{ displayOutletPressure }}</span>
+          </div>
+          <div class="parameter-item">
+            <span class="parameter-label">黄埔站油品温度</span>
+            <span class="parameter-value" :class="outletTempStatus">{{ displayOutletTemp }}</span>
+          </div>
+          <div class="parameter-item">
             <span class="parameter-label">十字窖压力</span>
             <span class="parameter-value" :class="valve1PressureStatus">{{ displayValve1Pressure }}</span>
           </div>
@@ -36,21 +44,14 @@
           </div>
           
           <div class="parameter-item">
-            <span class="parameter-label">进站油品压力</span>
+            <span class="parameter-label">东莞站油品压力</span>
             <span class="parameter-value" :class="inletPressureStatus">{{ displayInletPressure }}</span>
           </div>
           <div class="parameter-item">
-            <span class="parameter-label">进站油品温度</span>
+            <span class="parameter-label">东莞站油品温度</span>
             <span class="parameter-value" :class="inletTempStatus">{{ displayInletTemp }}</span>
           </div>
-          <div class="parameter-item">
-            <span class="parameter-label">出站油品压力</span>
-            <span class="parameter-value" :class="outletPressureStatus">{{ displayOutletPressure }}</span>
-          </div>
-          <div class="parameter-item">
-            <span class="parameter-label">出站油品温度</span>
-            <span class="parameter-value" :class="outletTempStatus">{{ displayOutletTemp }}</span>
-          </div>
+
         </div>
       </div>
       
