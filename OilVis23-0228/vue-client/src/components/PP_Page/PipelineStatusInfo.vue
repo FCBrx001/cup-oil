@@ -15,13 +15,23 @@
       </div> -->
     <!-- </div> -->
 
-    <!-- 管段选择器 - 固定显示 -->
+    <!-- 管段选择器 - 下拉框形式 -->
     <div class="pipeline-selector">
       <div class="select-wrapper">
         <div class="select-container">
-          <div class="select-display-fixed">
-            黄埔 至 东莞
-          </div>
+          <el-select 
+            v-model="selectedPipeline" 
+            @change="handlePipelineChange"
+            class="pipeline-select"
+            placeholder="请选择管段"
+            popper-class="pipeline-select-dropdown">
+            <el-option
+              v-for="item in pipelineOptions"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value">
+            </el-option>
+          </el-select>
         </div>
       </div>
     </div>
@@ -247,8 +257,8 @@ export default {
       // 管段选项
       pipelineOptions: [
         { value: 'pipeline1', label: '黄埔 至 东莞' },
-        // { value: 'pipeline2', label: '阳江 至 恩平' },
-        // { value: 'pipeline3', label: '恩平 至 鹤山' }
+        { value: 'pipeline2', label: '阳江 至 恩平' },
+        { value: 'pipeline3', label: '恩平 至 鹤山' }
       ],
       
       // 管段数据
@@ -590,70 +600,222 @@ export default {
 
 .select-container {
   position: relative;
-  background: rgba(2, 32, 71, 0.9);
-  border: 1px solid #66dffb;
-  border-radius: 6px;
+  background: transparent;
+  border: 1px solid #1890ff;
+  border-radius: 4px;
   height: 40px;
-  box-shadow: 0 0 15px rgba(102, 223, 251, 0.3);
   transition: all 0.3s ease;
 }
 
 .select-container:hover {
-  /* 移除hover效果，因为不再是可点击的下拉框 */
+  border-color: #40a9ff;
 }
 
-.select-display {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 15px;
-  letter-spacing: 1px;
-  pointer-events: none;
-}
-
-.select-display-fixed {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 15px;
-  letter-spacing: 1px;
-  cursor: default;
-}
-
-.hidden-select {
+/* 下拉框样式 */
+.pipeline-select {
   width: 100%;
   height: 100%;
-  opacity: 0;
 }
 
-.hidden-select ::v-deep .el-input__inner {
-  opacity: 0;
+.pipeline-select ::v-deep .el-input {
+  height: 100%;
+  background: transparent !important;
 }
 
-.select-arrow {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #66dffb;
-  pointer-events: none;
-  transition: transform 0.3s ease;
+.pipeline-select ::v-deep .el-input__inner {
+  background-color: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  color: #ffffff !important;
+  font-size: 15px !important;
+  font-weight: normal !important;
+  letter-spacing: 1px !important;
+  text-align: center !important;
+  height: 100% !important;
+  line-height: 40px !important;
+  padding: 0 !important;
+  border-radius: 4px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
-.select-container:hover .select-arrow {
-  transform: translateY(-50%) scale(1.1);
+/* 强制覆盖所有可能的文字颜色 */
+.pipeline-select ::v-deep .el-input__inner,
+.pipeline-select ::v-deep .el-input .el-input__inner,
+.pipeline-select ::v-deep .el-select .el-input__inner {
+  color: #ffffff !important;
+}
+
+.pipeline-select ::v-deep .el-input__inner:hover {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.pipeline-select ::v-deep .el-input__inner:focus {
+  border: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.pipeline-select ::v-deep .el-input__inner:active {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.pipeline-select ::v-deep .el-input.is-focus .el-input__inner {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
+.pipeline-select ::v-deep .el-input__inner::placeholder {
+  color: rgba(102, 223, 251, 0.6) !important;
+  text-align: center !important;
+}
+
+.pipeline-select ::v-deep .el-input__suffix {
+  right: 10px !important;
+}
+
+.pipeline-select ::v-deep .el-input__suffix-inner {
+  color: #66dffb !important;
+}
+
+.pipeline-select ::v-deep .el-icon-arrow-up {
+  color: #66dffb !important;
+  transition: transform 0.3s ease !important;
+}
+
+/* 全局强制覆盖Element UI的白色背景 */
+.pipeline-select ::v-deep .el-input,
+.pipeline-select ::v-deep .el-input *,
+.pipeline-select ::v-deep .el-input__inner,
+.pipeline-select ::v-deep .el-input__wrapper,
+.pipeline-select ::v-deep .el-select,
+.pipeline-select ::v-deep .el-select *,
+.pipeline-select ::v-deep .el-select__tags,
+.pipeline-select ::v-deep .el-select__tags *,
+.pipeline-select ::v-deep .el-input-group,
+.pipeline-select ::v-deep .el-input-group *,
+.pipeline-select ::v-deep .el-input-group__append,
+.pipeline-select ::v-deep .el-input-group__prepend {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* 更强的全局覆盖 */
+.select-container .el-input__inner,
+.select-container .el-input,
+.select-container .el-select,
+.select-container * {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* 最强力的全局覆盖 - 针对所有可能的白色背景 */
+.pipeline-status-container .el-input__inner,
+.pipeline-status-container .el-input,
+.pipeline-status-container .el-select,
+.pipeline-status-container .el-select *,
+.pipeline-status-container .pipeline-select *,
+.pipeline-status-container .select-container *,
+.pipeline-status-container [class*="el-"] {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* 直接覆盖Element UI的默认样式 */
+.el-input__inner {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+.el-select .el-input__inner {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* 最终解决方案 - 全局强制覆盖 */
+.pipeline-status-container .el-input__inner,
+.pipeline-status-container .el-input,
+.pipeline-status-container .el-select .el-input__inner,
+.pipeline-status-container .el-select .el-input,
+.pipeline-status-container .pipeline-select .el-input__inner,
+.pipeline-status-container .pipeline-select .el-input {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* 针对所有可能的Element UI组件 */
+.pipeline-status-container [class*="el-input"],
+.pipeline-status-container [class*="el-select"] {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* 下拉框弹出层样式 - 垂直排列 */
+.pipeline-select-dropdown {
+  background: rgba(0, 21, 41, 0.9) !important;
+  border: 1px solid #1890ff !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5) !important;
+  margin-top: 1px !important;
+  min-width: 390px !important;
+  padding: 8px !important;
+}
+
+.pipeline-select-dropdown .el-select-dropdown__wrap {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.pipeline-select-dropdown .el-select-dropdown__list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  padding: 0 !important;
+}
+
+.pipeline-select-dropdown .el-select-dropdown__item {
+  background: rgba(0, 21, 41, 0.6) !important;
+  color: #ffffff !important;
+  font-size: 15px !important;
+  font-weight: normal !important;
+  letter-spacing: 1px !important;
+  text-align: center !important;
+  padding: 18px 20px !important;
+  margin: 0 !important;
+  border: 1px solid rgba(24, 144, 255, 0.3) !important;
+  border-radius: 4px !important;
+  transition: all 0.3s ease !important;
+  display: block !important;
+  width: 100% !important;
+  min-height: 50px !important;
+  line-height: 1.5 !important;
+  box-sizing: border-box !important;
+}
+
+.pipeline-select-dropdown .el-select-dropdown__item:hover {
+  background: rgba(24, 144, 255, 0.3) !important;
+  color: #ffffff !important;
+  border-color: rgba(24, 144, 255, 0.6) !important;
+  transform: translateY(-1px) !important;
+}
+
+.pipeline-select-dropdown .el-select-dropdown__item.selected {
+  background: rgba(24, 144, 255, 0.4) !important;
+  color: #ffffff !important;
+  font-weight: 500 !important;
+  font-height:400;
+  border-color: rgba(24, 144, 255, 0.8) !important;
+  box-shadow: 0 0 8px rgba(24, 144, 255, 0.3) !important;
+}
+
+.pipeline-select-dropdown .el-select-dropdown__item.selected::after {
+  color: #ffffff !important;
 }
 
 /* 状态信息内容样式 */
@@ -995,6 +1157,78 @@ export default {
   background: rgba(0, 21, 41, 0.9) !important;
   padding: 10px 20px !important;
   border-top: 1px solid rgba(24, 144, 255, 0.3) !important;
+}
+
+/* 终极解决方案 - 强制覆盖所有Element UI的白色背景和文字颜色 */
+.pipeline-status-container .el-input__inner,
+.pipeline-status-container .el-input,
+.pipeline-status-container .el-select .el-input__inner,
+.pipeline-status-container .el-select .el-input,
+.pipeline-status-container .pipeline-select .el-input__inner,
+.pipeline-status-container .pipeline-select .el-input,
+.pipeline-status-container .el-select,
+.pipeline-status-container .el-select *,
+.pipeline-status-container .pipeline-select,
+.pipeline-status-container .pipeline-select *,
+.pipeline-status-container .select-container,
+.pipeline-status-container .select-container * {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+  color: #ffffff !important;
+}
+
+/* 全局强制覆盖 - 最高优先级 */
+.el-input__inner,
+.el-select .el-input__inner,
+.el-select .el-input,
+.el-input,
+.el-select {
+  background: transparent !important;
+  background-color: transparent !important;
+  background-image: none !important;
+}
+
+/* 超级强制覆盖 - 针对所有可能的Element UI样式 */
+.pipeline-select-dropdown,
+.pipeline-select,
+.select-container,
+.pipeline-selector {
+  color: #ffffff !important;
+}
+
+.pipeline-select-dropdown .el-input__inner,
+.pipeline-select .el-input__inner,
+.select-container .el-input__inner,
+.pipeline-selector .el-input__inner {
+  color: #ffffff !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* 最强力的文字颜色覆盖 - 针对所有状态 */
+.pipeline-select ::v-deep .el-input__inner,
+.pipeline-select ::v-deep .el-input__inner:hover,
+.pipeline-select ::v-deep .el-input__inner:focus,
+.pipeline-select ::v-deep .el-input__inner:active,
+.pipeline-select ::v-deep .el-input.is-focus .el-input__inner,
+.pipeline-select ::v-deep .el-select .el-input__inner,
+.pipeline-select ::v-deep .el-select .el-input__inner:hover,
+.pipeline-select ::v-deep .el-select .el-input__inner:focus {
+  color: #ffffff !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* 全局覆盖所有可能的Element UI输入框文字颜色 */
+.pipeline-status-container input,
+.pipeline-status-container .el-input input,
+.pipeline-status-container .el-select input,
+.pipeline-status-container [class*="el-input"] input,
+.pipeline-status-container [class*="el-select"] input {
+  color: #ffffff !important;
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 /* 按钮样式 */

@@ -1,15 +1,15 @@
 <template>
   <div class="chart-container">
-    <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px; margin-bottom: 5px;">
+    <div class="chart-header" style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px; margin-bottom: 5px; position: relative;">
       <span class="wgrytj_bt" style="font-size:1.2rem;">
         <!-- {{ chartTitle }} -->
       </span>
       <div class="chart-controls">
         <!-- 选中站点标签显示 -->
         <div class="selected-valves">
-          <!-- 按优先级排序的站点标签 -->
+          <!-- 真实选中的站点标签 -->
           <el-tag
-            v-for="(valve, index) in sortedSelectedValves"
+            v-for="(valve, index) in selectedValves"
             :key="valve.valveName"
             size="small"
             :type="getTagType(index)"
@@ -36,8 +36,8 @@
         <!-- 显示选项切换按钮 -->
         <div class="chart-toggle">
           <div class="toggle-buttons">
-            <!-- 单站点模式：显示温度/压力切换按钮 -->
-            <template v-if="!isDualStationMode">
+            <!-- 单站点模式下的温度/压力切换按钮 -->
+            <template v-if="!shouldUseDualMode">
               <button 
                 class="toggle-btn"
                 :class="{ active: showTemperature }"
@@ -56,26 +56,21 @@
               </button>
             </template>
             
-            <!-- 双站点模式：显示对比类型切换按钮 -->
-            <template v-else>
-              <button 
-                class="toggle-btn"
-                :class="{ active: dualCompareType === 'pressure' }"
-                @click="setDualCompareType('pressure')"
-              >
-                <i class="icon-pressure"></i>
-                压力对比
-              </button>
-              <button 
-                class="toggle-btn"
-                :class="{ active: dualCompareType === 'temperature' }"
-                @click="setDualCompareType('temperature')"
-              >
-                <i class="icon-temperature"></i>
-                温度对比
-              </button>
- 
-            </template>
+            <!-- 双站点模式下的温度/压力切换开关 -->
+            <div v-if="shouldUseDualMode" class="dual-mode-toggle">
+              <label class="checkbox-item">
+                <span class="label-left">压力</span>
+                <div class="single-checkbox-switch">
+                  <input 
+                    type="checkbox" 
+                    :checked="dualModeType === 'temperature'"
+                    @change="switchDualMode(dualModeType === 'pressure' ? 'temperature' : 'pressure')"
+                  />
+                  <span class="checkbox-custom"></span>
+                </div>
+                <span class="label-right">温度</span>
+              </label>
+            </div>
           </div>
         </div>
       </div>
@@ -83,9 +78,7 @@
     
     <div class="chart-body">
       <!-- 统一使用单图表模式 -->
-      <div>
-        <div id="prediction_chart" style="width:100%; height:350px; margin-left: -50px;"></div>
-      </div>
+      <div id="prediction_chart" style="width:100%; height:350px; margin-left: -50px;"></div>
     </div>
     
     <!-- 数据状态显示 -->
@@ -113,8 +106,6 @@ export default {
     return {
       // 图表实例
       prediction_chart: null,
-      temperature_chart: null,
-      pressure_chart: null,
       
       // 默认显示的站点名称
       defaultStationName: '站点2',
@@ -127,19 +118,30 @@ export default {
       // 显示选项
       displayOptions: ['temperature', 'pressure'],
       
-      // 双站点对比模式下的显示类型：'temperature' 或 'pressure'
-      dualCompareType: 'temperature',
-      
-      // 站点显示优先级顺序
-      stationPriority: ['黄埔', '十字窖', '站点2', '东莞'],
-      
       // 颜色配置
       stationColors: [
         '#66dffb', '#52c41a', '#1890ff', '#13c2c2', 
         '#722ed1', '#faad14', '#eb2f96', '#fa8c16'
       ],
       dataInitialized: false,
-      drawChartsTimer: null
+      drawChartsTimer: null,
+
+      // 双站点模式相关
+      dualModeType: 'pressure', // 'pressure' 或 'temperature'
+      dualModeOptions: { // 双站点模式下的图表选项
+        pressure: {
+          title: '压力',
+          yAxisName: '压力 (MPa)',
+          yAxisColor: '#ff6b6b',
+          yAxisLabelFormatter: '{value}MPa'
+        },
+        temperature: {
+          title: '温度',
+          yAxisName: '温度 (℃)',
+          yAxisColor: '#ffd166',
+          yAxisLabelFormatter: '{value}℃'
+        }
+      }
     }
   },
   
@@ -158,40 +160,20 @@ export default {
     showPressure() {
       return this.displayOptions.includes('pressure');
     },
-    shouldUseDualCharts() {
-      return false; // 不再使用双图表模式，统一使用单图表
-    },
-    isDualStationMode() {
+    shouldUseDualMode() {
       return this.selectedValves && this.selectedValves.length === 2;
     },
-    // 按照优先级排序的选中站点
-    sortedSelectedValves() {
-      if (!this.selectedValves || this.selectedValves.length === 0) {
-        return [];
-      }
-      
-      // 按照站点优先级排序
-      return [...this.selectedValves].sort((a, b) => {
-        const priorityA = this.stationPriority.indexOf(a.valveName);
-        const priorityB = this.stationPriority.indexOf(b.valveName);
-        
-        // 如果站点不在优先级列表中，放到最后
-        if (priorityA === -1) return 1;
-        if (priorityB === -1) return -1;
-        
-        return priorityA - priorityB;
-      });
-    },
     currentStationName() {
-      return this.sortedSelectedValves.length > 0 
-        ? this.sortedSelectedValves[0].valveName 
+      return this.selectedValves.length > 0 
+        ? this.selectedValves[0].valveName 
         : '黄埔';
     },
     chartTitle() {
-      if (this.shouldUseDualCharts) {
-        // return ` (${this.selectedValves.map(v => v.valveName).join(' vs ')})`;
+      if (this.shouldUseDualMode) {
+        const modeInfo = this.dualModeOptions[this.dualModeType];
+        return `${this.selectedValves.map(v => v.valveName).join(' vs ')} - ${modeInfo.title}`;
       }
-      return `${this.currentStationName} `;
+      return `${this.currentStationName}`;
     },
     realDataCount() {
       const count = this.getRealTimeDataCount(this.currentStationName);
@@ -255,7 +237,6 @@ export default {
       this.$nextTick(() => {
         setTimeout(() => {
           try {
-            // 统一使用单图表
             this.initSingleChart();
             this.drawCharts();
           } catch (error) {
@@ -273,7 +254,6 @@ export default {
       this.$nextTick(() => {
         setTimeout(() => {
           try {
-            // 统一使用单图表
             this.initSingleChart();
             this.drawCharts();
             
@@ -295,7 +275,6 @@ export default {
     retryInitChart() {
       try {
         console.log('重试初始化图表...');
-        // 统一使用单图表
         this.initSingleChart();
         this.drawCharts();
       } catch (error) {
@@ -313,50 +292,16 @@ export default {
       }
     },
 
-    initDualCharts() {
-      const tempChartDom = document.getElementById('temperature_chart');
-      if (tempChartDom && tempChartDom.offsetWidth > 0 && tempChartDom.offsetHeight > 0) {
-        this.temperature_chart = echarts.init(tempChartDom);
-        console.log('温度图表初始化成功, 容器尺寸:', tempChartDom.offsetWidth, 'x', tempChartDom.offsetHeight);
-      } else {
-        console.warn('温度图表容器尺寸不正确或不存在:', tempChartDom ? tempChartDom.offsetWidth : undefined, 'x', tempChartDom ? tempChartDom.offsetHeight : undefined);
-      }
 
-      const pressChartDom = document.getElementById('pressure_chart');
-      if (pressChartDom && pressChartDom.offsetWidth > 0 && pressChartDom.offsetHeight > 0) {
-        this.pressure_chart = echarts.init(pressChartDom);
-        console.log('压力图表初始化成功, 容器尺寸:', pressChartDom.offsetWidth, 'x', pressChartDom.offsetHeight);
-      } else {
-        console.warn('压力图表容器尺寸不正确或不存在:', pressChartDom ? pressChartDom.offsetWidth : undefined, 'x', pressChartDom ? pressChartDom.offsetHeight : undefined);
-      }
-    },
 
     disposeCharts() {
       try {
-      if (this.prediction_chart) {
-        this.prediction_chart.dispose();
-        this.prediction_chart = null;
-      }
+        if (this.prediction_chart) {
+          this.prediction_chart.dispose();
+          this.prediction_chart = null;
+        }
       } catch (err) {
-        console.error('销毁单图表失败:', err);
-      }
-      
-      try {
-      if (this.temperature_chart) {
-        this.temperature_chart.dispose();
-        this.temperature_chart = null;
-      }
-      } catch (err) {
-        console.error('销毁温度图表失败:', err);
-      }
-      
-      try {
-      if (this.pressure_chart) {
-        this.pressure_chart.dispose();
-        this.pressure_chart = null;
-        } 
-      } catch (err) {
-        console.error('销毁压力图表失败:', err);
+        console.error('销毁图表失败:', err);
       }
     },
 
@@ -368,13 +313,14 @@ export default {
 
       this.drawChartsTimer = setTimeout(() => {
         try {
-          if (this.isDualStationMode) {
-            const [station1, station2] = this.sortedSelectedValves.map(v => v.valveName);
-            console.log(`🎯 双站点对比模式 - 站点: ${station1} vs ${station2}, 类型: ${this.dualCompareType}`);
-            this.drawDualStationCompareChart();
+          // 统一使用单图表模式
+          if (this.shouldUseDualMode) {
+            const [station1, station2] = this.selectedValves.map(v => v.valveName);
+            console.log(`🎯 双站点模式 - 站点: ${station1} vs ${station2}, 模式: ${this.dualModeType}`);
+            this.drawDualModeChart();
           } else {
             console.log(`🎯 单站点模式 - 站点: ${this.currentStationName}`);
-            this.drawPredictionChart();
+            this.drawSingleModeChart();
           }
         } catch (error) {
           console.error('绘制图表时出错:', error);
@@ -382,17 +328,9 @@ export default {
       }, 50); // 50ms防抖
     },
 
-    drawPredictionChart() {
+    drawSingleModeChart() {
       if (!this.prediction_chart) return;
-      
-      let option;
-      if (this.isDualStationMode) {
-        // 双站点对比模式
-        option = this.getDualStationCompareOption();
-      } else {
-        // 单站点模式
-        option = this.getBaseChartOption(this.currentStationName);
-      }
+      const option = this.getSingleModeChartOption();
 
       // 获取当前的 dataZoom 状态
       const currentOption = this.prediction_chart.getOption();
@@ -406,391 +344,42 @@ export default {
       }
     },
 
-    // 新方法：绘制双站点对比图表（保持兼容性）
-    drawDualStationCompareChart() {
-      this.drawPredictionChart();
-    },
+    drawDualModeChart() {
+      if (!this.prediction_chart) return;
+      const option = this.getDualModeChartOption();
 
-    drawDualCharts() {
-      if (!this.shouldUseDualCharts) return;
-      const [station1, station2] = this.selectedValves.map(v => v.valveName);
-
-      // 左边图表显示两个站点的温度对比
-      if (this.temperature_chart) {
-        const temperatureOption = this.getDualTemperatureChartOption(station1, station2);
-
-        // 获取当前的 dataZoom 状态
-        const currentOption1 = this.temperature_chart.getOption();
-        if (currentOption1 && currentOption1.dataZoom && currentOption1.dataZoom.length > 0) {
-          temperatureOption.dataZoom = currentOption1.dataZoom;
-          this.temperature_chart.setOption(temperatureOption, false);
-        } else {
-          this.temperature_chart.setOption(temperatureOption, true);
-        }
-      }
-
-      // 右边图表显示两个站点的压力对比
-      if (this.pressure_chart) {
-        const pressureOption = this.getDualPressureChartOption(station1, station2);
-
-        // 获取当前的 dataZoom 状态
-        const currentOption2 = this.pressure_chart.getOption();
-        if (currentOption2 && currentOption2.dataZoom && currentOption2.dataZoom.length > 0) {
-          pressureOption.dataZoom = currentOption2.dataZoom;
-          this.pressure_chart.setOption(pressureOption, false);
-        } else {
-          this.pressure_chart.setOption(pressureOption, true);
-        }
-      }
-    },
-
-    // 重置 dataZoom 到默认状态（在切换站点或参数时使用）
-    resetDataZoom() {
-      if (this.prediction_chart) {
-        let option;
-        if (this.isDualStationMode) {
-          option = this.getDualStationCompareOption();
-        } else {
-          option = this.getBaseChartOption(this.currentStationName);
-        }
+      // 获取当前的 dataZoom 状态
+      const currentOption = this.prediction_chart.getOption();
+      if (currentOption && currentOption.dataZoom && currentOption.dataZoom.length > 0) {
+        // 保持当前的 dataZoom 状态，只更新数据
+        option.dataZoom = currentOption.dataZoom;
+        this.prediction_chart.setOption(option, false); // 使用 false 进行增量更新
+      } else {
+        // 首次加载或需要重置时使用完整更新
         this.prediction_chart.setOption(option, true);
       }
     },
 
-    // 生成双站点对比图表配置
-    getDualStationCompareOption() {
-      const [station1, station2] = this.sortedSelectedValves.map(v => v.valveName);
-      const stationData1 = this.getCombinedStationData(station1);
-      const stationData2 = this.getCombinedStationData(station2);
 
-      // 获取站点颜色
-      const station1Colors = this.getStationColors(station1);
-      const station2Colors = this.getStationColors(station2);
 
-      let series = [];
-      let yAxis = [];
-      let dataType = '';
-
-      if (this.dualCompareType === 'temperature') {
-        // 温度对比
-        dataType = '温度';
-        const tempRange = this.calculateDataRange([
-          stationData1.temperature.actual,
-          stationData1.temperature.prediction,
-          stationData2.temperature.actual,
-          stationData2.temperature.prediction
-        ], '温度');
-
-        series = [
-          { 
-            name: `${station1}实际温度`, 
-            type: 'line', 
-            data: stationData1.temperature.actual, 
-            ...this.getSeriesStyleWithColor('actual_temp', station1Colors.actual)
-          },
-          { 
-            name: `${station1}预测温度`, 
-            type: 'line', 
-            data: stationData1.temperature.prediction, 
-            ...this.getSeriesStyleWithColor('prediction_temp', station1Colors.prediction)
-          },
-          { 
-            name: `${station2}实际温度`, 
-            type: 'line', 
-            data: stationData2.temperature.actual, 
-            ...this.getSeriesStyleWithColor('actual_temp', station2Colors.actual)
-          },
-          { 
-            name: `${station2}预测温度`, 
-            type: 'line', 
-            data: stationData2.temperature.prediction, 
-            ...this.getSeriesStyleWithColor('prediction_temp', station2Colors.prediction)
-          }
-        ];
-
-        yAxis = [{
-          min: tempRange.min, max: tempRange.max, type: 'value', name: '温度 (℃)',
-          position: 'left',
-          nameTextStyle: { color: '#ffd166', fontSize: 12 },
-          axisLine: { show: true, lineStyle: { color: '#ffd166', width: 2 } },
-          axisLabel: { color: '#ffd166', fontSize: 11, formatter: '{value}℃' },
-          splitLine: { show: false },
-          axisTick: {
-            show: true,
-            lineStyle: { color: '#ffd166', width: 1 },
-            length: 6,
-            inside: false
-          }
-        }];
-      } else {
-        // 压力对比
-        dataType = '压力';
-        const pressureRange = this.calculateDataRange([
-          stationData1.pressure.actual,
-          stationData1.pressure.prediction,
-          stationData2.pressure.actual,
-          stationData2.pressure.prediction
-        ], '压力');
-
-        series = [
-          { 
-            name: `${station1}实际压力`, 
-            type: 'line', 
-            data: stationData1.pressure.actual, 
-            ...this.getSeriesStyleWithColor('actual_pressure', station1Colors.actual)
-          },
-          { 
-            name: `${station1}预测压力`, 
-            type: 'line', 
-            data: stationData1.pressure.prediction, 
-            ...this.getSeriesStyleWithColor('prediction_pressure', station1Colors.prediction)
-          },
-          { 
-            name: `${station2}实际压力`, 
-            type: 'line', 
-            data: stationData2.pressure.actual, 
-            ...this.getSeriesStyleWithColor('actual_pressure', station2Colors.actual)
-          },
-          { 
-            name: `${station2}预测压力`, 
-            type: 'line', 
-            data: stationData2.pressure.prediction, 
-            ...this.getSeriesStyleWithColor('prediction_pressure', station2Colors.prediction)
-          }
-        ];
-
-        yAxis = [{
-          min: pressureRange.min, max: pressureRange.max, type: 'value', name: '压力 (MPa)',
-          position: 'left',
-          nameTextStyle: { color: '#ff6b6b', fontSize: 12 },
-          axisLine: { show: true, lineStyle: { color: '#ff6b6b', width: 2 } },
-          axisLabel: { color: '#ff6b6b', fontSize: 11, formatter: '{value}MPa' },
-          splitLine: { show: false },
-          axisTick: {
-            show: true,
-            lineStyle: { color: '#ff6b6b', width: 1 },
-            length: 6,
-            inside: false
-          }
-        }];
+    // 重置 dataZoom 到默认状态（在切换站点或参数时使用）
+    resetDataZoom() {
+      if (this.prediction_chart) {
+        if (this.shouldUseDualMode) {
+          const option = this.getDualModeChartOption();
+          this.prediction_chart.setOption(option, true);
+        } else {
+          const option = this.getSingleModeChartOption();
+          this.prediction_chart.setOption(option, true);
+        }
       }
-
-      console.log(`🎯 双站点${dataType}对比:`, {
-        station1: station1,
-        station2: station2,
-        dataType: dataType,
-        seriesCount: series.length
-      });
-
-      return {
-        backgroundColor: 'transparent',
-        title: { 
-          text: `${station1} vs ${station2} (${dataType})`, 
-          left: 'center', 
-          textStyle: { color: '#66dffb', fontSize: 14 } 
-        },
-        tooltip: { trigger: 'axis', ...this.getBaseTooltipStyle() },
-        legend: {
-          top: 25,
-          textStyle: { color: '#66dffb', fontSize: 12 },
-          itemWidth: 30,
-          itemHeight: 4,
-          itemGap: 20,
-          symbolKeepAspect: false
-        },
-        grid: { left: '12%', right: '8%', bottom: '18%', top: '30%', containLabel: true },
-        xAxis: { type: 'time', ...this.getBaseAxisStyle() },
-        yAxis: yAxis,
-        dataZoom: this.getBaseDataZoom(),
-        graphic: this.getDataZoomLabels(stationData1),
-        series: series
-      };
     },
 
-    // 生成双站点温度对比图表配置
-    getDualTemperatureChartOption(station1, station2) {
-      const stationData1 = this.getCombinedStationData(station1);
-      const stationData2 = this.getCombinedStationData(station2);
-
-      console.log(`🌡️ 温度数据检查:`, {
-        station1: station1,
-        station1_actual_count: stationData1.temperature.actual.length,
-        station1_prediction_count: stationData1.temperature.prediction.length,
-        station2: station2,
-        station2_actual_count: stationData2.temperature.actual.length,
-        station2_prediction_count: stationData2.temperature.prediction.length
-      });
-
-      // 获取站点颜色
-      const station1Colors = this.getStationColors(station1);
-      const station2Colors = this.getStationColors(station2);
-
-      // 计算温度数据的实际范围
-      const tempRange = this.calculateDataRange([
-        stationData1.temperature.actual,
-        stationData1.temperature.prediction,
-        stationData2.temperature.actual,
-        stationData2.temperature.prediction
-      ], '温度');
-
-      const series = [
-        { 
-          name: `${station1}实际温度`, 
-          type: 'line', 
-          data: stationData1.temperature.actual, 
-          ...this.getSeriesStyleWithColor('actual_temp', station1Colors.actual)
-        },
-        { 
-          name: `${station1}预测温度`, 
-          type: 'line', 
-          data: stationData1.temperature.prediction, 
-          ...this.getSeriesStyleWithColor('prediction_temp', station1Colors.prediction)
-        },
-        { 
-          name: `${station2}实际温度`, 
-          type: 'line', 
-          data: stationData2.temperature.actual, 
-          ...this.getSeriesStyleWithColor('actual_temp', station2Colors.actual)
-        },
-        { 
-          name: `${station2}预测温度`, 
-          type: 'line', 
-          data: stationData2.temperature.prediction, 
-          ...this.getSeriesStyleWithColor('prediction_temp', station2Colors.prediction)
-        }
-      ];
-
-      return {
-        backgroundColor: 'transparent',
-        title: { 
-          text: `${station1} vs ${station2}`, 
-          left: 'center', 
-          textStyle: { color: '#66dffb', fontSize: 14 } 
-        },
-        legend: {
-          top: 25,
-          textStyle: { color: '#66dffb', fontSize: 12 },
-          itemWidth: 30,
-          itemHeight: 4,
-          itemGap: 20,
-          symbolKeepAspect: false
-        },
-        grid: { left: '12%', right: '8%', bottom: '18%', top: '30%', containLabel: true },
-        xAxis: { type: 'time', ...this.getBaseAxisStyle() },
-        yAxis: [{
-          min: tempRange.min, max: tempRange.max, type: 'value', name: '温度 (℃)',
-          position: 'left',
-          nameTextStyle: { color: '#ffd166', fontSize: 12 },
-          axisLine: { show: true, lineStyle: { color: '#ffd166', width: 2 } },
-          axisLabel: { color: '#ffd166', fontSize: 11, formatter: '{value}℃' },
-          splitLine: { show: false },
-          axisTick: {
-            show: true,
-            lineStyle: { color: '#ffd166', width: 1 },
-            length: 6,
-            inside: false
-          }
-        }],
-        dataZoom: this.getBaseDataZoom(),
-        graphic: this.getDataZoomLabels(stationData1),
-        series: series
-      };
-    },
-
-    // 生成双站点压力对比图表配置
-    getDualPressureChartOption(station1, station2) {
-      const stationData1 = this.getCombinedStationData(station1);
-      const stationData2 = this.getCombinedStationData(station2);
-
-      console.log(`📊 压力数据检查:`, {
-        station1: station1,
-        station1_actual_count: stationData1.pressure.actual.length,
-        station1_prediction_count: stationData1.pressure.prediction.length,
-        station2: station2,
-        station2_actual_count: stationData2.pressure.actual.length,
-        station2_prediction_count: stationData2.pressure.prediction.length
-      });
-
-      // 获取站点颜色
-      const station1Colors = this.getStationColors(station1);
-      const station2Colors = this.getStationColors(station2);
-
-      // 计算压力数据的实际范围
-      const pressureRange = this.calculateDataRange([
-        stationData1.pressure.actual,
-        stationData1.pressure.prediction,
-        stationData2.pressure.actual,
-        stationData2.pressure.prediction
-      ], '压力');
-
-      const series = [
-        { 
-          name: `${station1}实际压力`, 
-          type: 'line', 
-          data: stationData1.pressure.actual, 
-          ...this.getSeriesStyleWithColor('actual_pressure', station1Colors.actual)
-        },
-        { 
-          name: `${station1}预测压力`, 
-          type: 'line', 
-          data: stationData1.pressure.prediction, 
-          ...this.getSeriesStyleWithColor('prediction_pressure', station1Colors.prediction)
-        },
-        { 
-          name: `${station2}实际压力`, 
-          type: 'line', 
-          data: stationData2.pressure.actual, 
-          ...this.getSeriesStyleWithColor('actual_pressure', station2Colors.actual)
-        },
-        { 
-          name: `${station2}预测压力`, 
-          type: 'line', 
-          data: stationData2.pressure.prediction, 
-          ...this.getSeriesStyleWithColor('prediction_pressure', station2Colors.prediction)
-        }
-      ];
-
-      return {
-        backgroundColor: 'transparent',
-        title: { 
-          text: `${station1} vs ${station2}`, 
-          left: 'center', 
-          textStyle: { color: '#66dffb', fontSize: 14 } 
-        },
-        legend: {
-          top: 25,
-          textStyle: { color: '#66dffb', fontSize: 12 },
-          itemWidth: 30,
-          itemHeight: 4,
-          itemGap: 20,
-          symbolKeepAspect: false
-        },
-        grid: { left: '12%', right: '8%', bottom: '18%', top: '30%', containLabel: true },
-        xAxis: { type: 'time', ...this.getBaseAxisStyle() },
-        yAxis: [{
-          min: pressureRange.min, max: pressureRange.max, type: 'value', name: '压力 (MPa)',
-          position: 'left',
-          nameTextStyle: { color: '#ff6b6b', fontSize: 12 },
-          axisLine: { show: true, lineStyle: { color: '#ff6b6b', width: 2 } },
-          axisLabel: { color: '#ff6b6b', fontSize: 11, formatter: '{value}MPa' },
-          splitLine: { show: false },
-          axisTick: {
-            show: true,
-            lineStyle: { color: '#ff6b6b', width: 1 },
-            length: 6,
-            inside: false
-          }
-        }],
-        dataZoom: this.getBaseDataZoom(),
-        graphic: this.getDataZoomLabels(stationData1),
-        series: series
-      };
-    },
-
-    // 统一的图表配置生成器
-    getBaseChartOption(stationName) {
-        const stationData = this.getCombinedStationData(stationName);
-        const series = [];
+    // 生成单站点模式图表配置
+    getSingleModeChartOption() {
+      const stationName = this.currentStationName;
+      const stationData = this.getCombinedStationData(stationName);
+      const series = [];
 
       // 动态计算Y轴索引
       let pressureAxisIndex = -1;
@@ -804,42 +393,166 @@ export default {
       }
 
       if (this.showTemperature && temperatureAxisIndex >= 0) {
-            series.push({ name: '实际温度', type: 'line', yAxisIndex: temperatureAxisIndex, data: stationData.temperature.actual, ...this.getSeriesStyle('actual_temp') });
-            series.push({ name: '预测温度', type: 'line', yAxisIndex: temperatureAxisIndex, data: stationData.temperature.prediction, ...this.getSeriesStyle('prediction_temp') });
+        series.push({ 
+          name: '实际温度', 
+          type: 'line', 
+          yAxisIndex: temperatureAxisIndex, 
+          data: stationData.temperature.actual, 
+          ...this.getSeriesStyle('actual_temp') 
+        });
+        series.push({ 
+          name: '预测温度', 
+          type: 'line', 
+          yAxisIndex: temperatureAxisIndex, 
+          data: stationData.temperature.prediction, 
+          ...this.getSeriesStyle('prediction_temp') 
+        });
       }
       if (this.showPressure && pressureAxisIndex >= 0) {
-            series.push({ name: '实际压力', type: 'line', yAxisIndex: pressureAxisIndex, data: stationData.pressure.actual, ...this.getSeriesStyle('actual_pressure') });
-            series.push({ name: '预测压力', type: 'line', yAxisIndex: pressureAxisIndex, data: stationData.pressure.prediction, ...this.getSeriesStyle('prediction_pressure') });
+        series.push({ 
+          name: '实际压力', 
+          type: 'line', 
+          yAxisIndex: pressureAxisIndex, 
+          data: stationData.pressure.actual, 
+          ...this.getSeriesStyle('actual_pressure') 
+        });
+        series.push({ 
+          name: '预测压力', 
+          type: 'line', 
+          yAxisIndex: pressureAxisIndex, 
+          data: stationData.pressure.prediction, 
+          ...this.getSeriesStyle('prediction_pressure') 
+        });
       }
 
       return {
-            backgroundColor: 'transparent',
-            title: { text: this.shouldUseDualCharts ? stationName : null, left: 'center', textStyle: { color: '#66dffb', fontSize: 14 } },
+        backgroundColor: 'transparent',
+        title: { 
+          text: stationName, 
+          left: 'center', 
+          textStyle: { color: '#66dffb', fontSize: 14 } 
+        },
         tooltip: { trigger: 'axis', ...this.getBaseTooltipStyle() },
         legend: {
           top: 25,
           textStyle: { color: '#66dffb', fontSize: 12 },
-          itemWidth: 30, // 图例标记的宽度
-          itemHeight: 4, // 图例标记的高度
-          itemGap: 20, // 图例项之间的间距
-          symbolKeepAspect: false // 不保持图标的长宽比
+          itemWidth: 30,
+          itemHeight: 4,
+          itemGap: 20,
+          symbolKeepAspect: false
         },
-            grid: { left: '12%', right: '8%', bottom: '18%', top: '30%', containLabel: true },
+        grid: { left: '12%', right: '8%', bottom: '18%', top: '30%', containLabel: true },
         xAxis: { type: 'time', ...this.getBaseAxisStyle() },
-            yAxis: this.getYAxisConfig(),
+        yAxis: this.getYAxisConfig(),
         dataZoom: this.getBaseDataZoom(),
-        graphic: this.getDataZoomLabels(stationData), // 添加dataZoom边界标签
-          series: series
-        };
+        graphic: this.getDataZoomLabels(stationData),
+        series: series
+      };
     },
+
+    // 生成双站点模式图表配置
+    getDualModeChartOption() {
+      const [station1, station2] = this.selectedValves.map(v => v.valveName);
+      const stationData1 = this.getCombinedStationData(station1);
+      const stationData2 = this.getCombinedStationData(station2);
+      const modeInfo = this.dualModeOptions[this.dualModeType];
+
+      console.log(`📊 ${modeInfo.title}数据检查:`, {
+        station1: station1,
+        station1_actual_count: stationData1[this.dualModeType].actual.length,
+        station1_prediction_count: stationData1[this.dualModeType].prediction.length,
+        station2: station2,
+        station2_actual_count: stationData2[this.dualModeType].actual.length,
+        station2_prediction_count: stationData2[this.dualModeType].prediction.length
+      });
+
+      // 为每个站点分配不同的颜色
+      const stationColors = this.getStationColorsForDualMode(station1, station2, this.dualModeType);
+
+      // 计算数据范围
+      const dataRange = this.calculateDataRange([
+        stationData1[this.dualModeType].actual,
+        stationData1[this.dualModeType].prediction,
+        stationData2[this.dualModeType].actual,
+        stationData2[this.dualModeType].prediction
+      ], modeInfo.title);
+
+      const series = [
+        { 
+          name: `${station1}实际${modeInfo.title}`, 
+          type: 'line', 
+          data: stationData1[this.dualModeType].actual, 
+          ...this.getSeriesStyleWithColor(`actual_${this.dualModeType}`, stationColors.station1)
+        },
+        { 
+          name: `${station1}预测${modeInfo.title}`, 
+          type: 'line', 
+          data: stationData1[this.dualModeType].prediction, 
+          ...this.getSeriesStyleWithColor(`prediction_${this.dualModeType}`, stationColors.station1)
+        },
+        { 
+          name: `${station2}实际${modeInfo.title}`, 
+          type: 'line', 
+          data: stationData2[this.dualModeType].actual, 
+          ...this.getSeriesStyleWithColor(`actual_${this.dualModeType}`, stationColors.station2)
+        },
+        { 
+          name: `${station2}预测${modeInfo.title}`, 
+          type: 'line', 
+          data: stationData2[this.dualModeType].prediction, 
+          ...this.getSeriesStyleWithColor(`prediction_${this.dualModeType}`, stationColors.station2)
+        }
+      ];
+
+      return {
+        backgroundColor: 'transparent',
+        title: { 
+          left: 'center', 
+          textStyle: { color: '#66dffb', fontSize: 14 } 
+        },
+        tooltip: { trigger: 'axis', ...this.getBaseTooltipStyle() },
+        legend: {
+          top: 25,
+          textStyle: { color: '#66dffb', fontSize: 12 },
+          itemWidth: 30,
+          itemHeight: 4,
+          itemGap: 20,
+          symbolKeepAspect: false
+        },
+        grid: { left: '12%', right: '8%', bottom: '18%', top: '30%', containLabel: true },
+        xAxis: { type: 'time', ...this.getBaseAxisStyle() },
+        yAxis: [{
+          min: dataRange.min, 
+          max: dataRange.max, 
+          type: 'value', 
+          name: modeInfo.yAxisName,
+          position: 'left',
+          nameTextStyle: { color: '#66dffb', fontSize: 12 }, // 使用统一的标题颜色
+          axisLine: { show: true, lineStyle: { color: '#66dffb', width: 2 } }, // 使用统一的轴线颜色
+          axisLabel: { color: '#66dffb', fontSize: 11, formatter: modeInfo.yAxisLabelFormatter }, // 使用统一的标签颜色
+          splitLine: { show: false },
+          axisTick: {
+            show: true,
+            lineStyle: { color: '#66dffb', width: 1 },
+            length: 6,
+            inside: false
+          }
+        }],
+        dataZoom: this.getBaseDataZoom(),
+        graphic: this.getDataZoomLabels(stationData1),
+        series: series
+      };
+    },
+
+
 
     // 辅助函数，提供基础样式配置
     getSeriesStyle(type) {
       const styles = {
-        actual_temp: { color: '#ffd166', width: 1.5, type: 'solid' },
-        prediction_temp: { color: '#ffd166', width: 1.5, type: 'dashed', dashArray: [8, 4] },
-        actual_pressure: { color: '#ff6b6b', width: 1.5, type: 'solid' },
-        prediction_pressure: { color: '#ff6b6b', width: 1.5, type: 'dashed', dashArray: [8, 4] }
+        actual_temp: { color: '#ffd166', width: 2, type: 'solid' },
+        prediction_temp: { color: '#ffd166', width: 2, type: 'dashed', dashArray: [8, 4] },
+        actual_pressure: { color: '#ff6b6b', width: 2, type: 'solid' },
+        prediction_pressure: { color: '#ff6b6b', width: 2, type: 'dashed', dashArray: [8, 4] }
       };
       const s = styles[type];
       
@@ -849,7 +562,7 @@ export default {
         showSymbol: false, // 所有线条都不显示数据点
         triggerLineEvent: true, // 确保无符号的线也能触发事件
         symbolSize: 0, // 确保所有数据点大小为0
-          lineStyle: {
+        lineStyle: {
           color: s.color,
           width: s.width,
           type: s.type,
@@ -912,28 +625,70 @@ export default {
 
     // 获取站点颜色配置
     getStationColors(stationName) {
+      // 使用与里程高程图表一致的颜色方案
       const colorSchemes = {
         '黄埔': {
-          actual: '#FF6B35',      // 橙红色 - 黄埔实际
-          prediction: '#FF8C42'   // 浅橙色 - 黄埔预测
+          actual: '#ff6b6b',      // 红色 - 与里程高程图表一致
+          prediction: '#ff6b6b'   // 红色 - 与里程高程图表一致
         },
         '东莞': {
-          actual: '#4ECDC4',      // 青绿色 - 东莞实际  
-          prediction: '#45B7B8'   // 深青色 - 东莞预测
+          actual: '#ffd166',      // 黄色 - 与里程高程图表一致
+          prediction: '#ffd166'   // 黄色 - 与里程高程图表一致
         },
         '十字窖': {
-          actual: '#A8E6CF',      // 浅绿色 - 十字窖实际
-          prediction: '#88D8A3'   // 中绿色 - 十字窖预测
+          actual: '#ff6b6b',      // 红色 - 与里程高程图表一致
+          prediction: '#ff6b6b'   // 红色 - 与里程高程图表一致
         },
         '站点2': {
-          actual: '#FFD93D',      // 金黄色 - 站点2实际
-          prediction: '#FFC312'   // 深黄色 - 站点2预测
+          actual: '#ffd166',      // 黄色 - 与里程高程图表一致
+          prediction: '#ffd166'   // 黄色 - 与里程高程图表一致
         }
       };
       
       return colorSchemes[stationName] || {
-        actual: '#66dffb',
-        prediction: '#52c41a'
+        actual: '#ff6b6b',
+        prediction: '#ffd166'
+      };
+    },
+
+    // 为双站点模式获取不同站点的颜色
+    getStationColorsForDualMode(station1, station2, modeType) {
+      // 定义站点颜色映射 - 为每个站点分配独特的颜色
+      const stationColorMap = {
+        '黄埔': '#ff6b6b',      // 红色
+        '东莞': '#ffd166',      // 黄色
+        '十字窖': '#52c41a',    // 绿色
+        '站点2': '#1890ff',     // 蓝色
+        '南沙': '#722ed1',      // 紫色
+        '番禺': '#faad14',      // 橙色
+        '高明': '#13c2c2',      // 青色
+        '顺德': '#eb2f96',      // 粉色
+        '南海': '#fa8c16',      // 深橙色
+        '三水': '#a0d911',      // 青绿色
+        '江门': '#f5222d',      // 深红色
+        '阳江': '#2f54eb',      // 深蓝色
+        '茂名': '#fa541c',      // 红橙色
+        '鹤山': '#531dab',      // 深紫色
+        '恩平': '#08979c'       // 深青色
+      };
+
+      // 获取站点颜色，如果站点不存在则使用默认颜色
+      const color1 = stationColorMap[station1] || '#ff6b6b';
+      const color2 = stationColorMap[station2] || '#ffd166';
+
+      // 如果两个站点颜色相同，为第二个站点分配一个不同的颜色
+      let finalColor2 = color2;
+      if (color1 === color2) {
+        // 从颜色映射中选择一个不同的颜色
+        const availableColors = Object.values(stationColorMap).filter(color => color !== color1);
+        finalColor2 = availableColors[0] || '#1890ff'; // 默认使用蓝色
+      }
+
+      console.log(`🎨 双站点颜色分配: ${station1}(${color1}) vs ${station2}(${finalColor2})`);
+
+      return {
+        station1: color1,
+        station2: finalColor2
       };
     },
 
@@ -1317,13 +1072,6 @@ export default {
       this.drawCharts();
     },
 
-    // 设置双站点对比类型
-    setDualCompareType(type) {
-      console.log(`切换双站点对比类型: ${this.dualCompareType} -> ${type}`);
-      this.dualCompareType = type;
-      this.drawCharts();
-    },
-
     testPredictionData() {
         // 始终为所有站点测试预测数据，不依赖于选中状态
         const stationsToTest = ['十字窖', '站点2', '黄埔', '东莞'];
@@ -1563,6 +1311,12 @@ export default {
 
     fetchRecentRealTimeData(count) {
       // Implementation of fetchRecentRealTimeData method
+    },
+
+    // 双站点模式切换
+    switchDualMode(type) {
+      this.dualModeType = type;
+      this.drawCharts();
     }
   },
 
@@ -1577,9 +1331,15 @@ export default {
     
     selectedValves: {
       handler() {
-        console.log('监听到阀门选择变化，重新绘制图表...');
-        // 重新绘制图表
-        this.drawCharts();
+        console.log('监听到阀门选择变化，重新初始化图表并重置dataZoom...');
+        
+        // 如果是双站点模式，确保默认显示压力对比
+        if (this.shouldUseDualMode && this.dualModeType !== 'pressure') {
+          this.dualModeType = 'pressure';
+        }
+        
+        // 重新初始化图表以匹配单/双站点模式，并重置dataZoom
+        this.initChartOnly();
         // 延迟重置dataZoom，确保图表已经初始化完成
         this.$nextTick(() => {
           setTimeout(() => {
@@ -1588,16 +1348,6 @@ export default {
         });
       },
       deep: true
-    },
-
-    // 监听双站点对比类型变化
-    dualCompareType() {
-      console.log('监听到对比类型变化，重置dataZoom...');
-      this.$nextTick(() => {
-        setTimeout(() => {
-          this.resetDataZoom();
-        }, 100);
-      });
     },
 
     // 监听温度/压力按钮变化，在参数切换时重置dataZoom
@@ -1644,38 +1394,16 @@ export default {
   position: absolute;
 }
 
-.dual-chart-container {
-  display: flex;
-  height: 100%;
-  gap: 10px;
-}
 
-.chart-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.chart-section-title {
-  text-align: center;
-  color: #66dffb;
-  font-size: 14px;
-  font-weight: bold;
-  padding: 5px 0;
-  border-bottom: 1px solid rgba(102, 223, 251, 0.3);
-  margin-bottom: 5px;
-}
-
-#temperature_chart,
-#pressure_chart {
-  flex: 1;
-  width: 100%;
-}
 
 .chart-controls {
   display: flex;
   align-items: center;
   gap: 10px;
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .chart-toggle {
@@ -1795,5 +1523,112 @@ export default {
 .icon-pressure:before {
   content: "📊";
   font-size: 14px;
+}
+
+/* 双站点模式切换按钮样式 */
+.dual-mode-toggle {
+  display: flex;
+  align-items: center;
+  margin-right: 0px;
+  /* margin-left: 0px;  */
+}
+
+.checkbox-item {
+  margin-left: 0px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.label-left,
+.label-right {
+  color: #66dffb;
+  font-size: 18px;
+  font-weight: normal;
+  transition: all 0.3s ease;
+}
+
+/* 单个checkbox开关样式 */
+.single-checkbox-switch {
+  display: flex;
+  align-items: center;
+}
+
+.checkbox-item input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+.checkbox-custom {
+  position: relative;
+  height: 24px;
+  width: 50px;
+  background: rgba(0, 21, 41, 0.8);
+  border: 2px solid rgba(102, 223, 251, 0.3);
+  border-radius: 24px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkbox-custom:before {
+  content: '';
+  position: absolute;
+  height: 16px;
+  width: 16px;
+  left: 4px;
+  background: rgba(102, 223, 251, 0.8);
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  transform: translateX(0);
+  z-index: 2;
+}
+
+.checkbox-item input[type="checkbox"]:checked + .checkbox-custom {
+  background: linear-gradient(135deg, rgba(102, 223, 251, 0.3), rgba(82, 196, 26, 0.2));
+  border-color: #66dffb;
+  box-shadow: 0 0 10px rgba(102, 223, 251, 0.4);
+}
+
+.checkbox-item input[type="checkbox"]:checked + .checkbox-custom:before {
+  background: #66dffb;
+  transform: translateX(26px);
+  box-shadow: 0 0 8px rgba(102, 223, 251, 0.8);
+}
+
+.checkbox-item:hover .checkbox-custom {
+  border-color: rgba(102, 223, 251, 0.6);
+  box-shadow: 0 0 8px rgba(102, 223, 251, 0.3);
+}
+
+.checkbox-item:hover input[type="checkbox"]:checked + .checkbox-custom {
+  box-shadow: 0 0 15px rgba(102, 223, 251, 0.6);
+}
+
+/* 外部标签状态切换 */
+.checkbox-item input[type="checkbox"]:not(:checked) ~ .label-left {
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.checkbox-item input[type="checkbox"]:checked ~ .label-right {
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.checkbox-item input[type="checkbox"]:not(:checked) ~ .label-right {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: normal;
+}
+
+.checkbox-item input[type="checkbox"]:checked ~ .label-left {
+  color: rgba(255, 255, 255, 0.6);
+  font-weight: normal;
 }
 </style> 

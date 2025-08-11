@@ -53,7 +53,7 @@ export const pipelineData = {
       minPressure: '1.8 MPa'
     },
     endStation: {
-      name: '湛江站',
+      name: '恩平站',
       maxPressure: '4.2 MPa',
       minPressure: '1.7 MPa'
     },
@@ -91,7 +91,7 @@ export const pipelineData = {
       minPressure: '1.4 MPa'
     },
     endStation: {
-      name: '深圳站',
+      name: '鹤山站',
       maxPressure: '3.2 MPa',
       minPressure: '1.2 MPa'
     },

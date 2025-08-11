@@ -4184,7 +4184,7 @@ export default {
 .pipeline-dropdown .el-select-dropdown__item {
     color: #ffffff !important;
     font-size: 1.1rem !important;
-    height: 42px !important;
+    height: 50px !important;
     line-height: 42px !important;
     padding: 0 20px !important;
     border-bottom: 1px solid rgba(102, 223, 251, 0.1) !important;
